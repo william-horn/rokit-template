@@ -8,62 +8,56 @@
 -- local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- local Shared = ReplicatedStorage.Shared
 -- local TableType = require(Shared.Types.Table)
+local Object = require(script.Parent.Object)
 
-export type PublicStaticFields = {
-	publicStaticField: string,
-}
+export type PublicStaticFields = {}
 
 export type PrivateStaticFields = {
 	__index: InternalClassInterface,
-	_count: number,
 }
 
 export type PublicFields = {
-	publicField: string,
+	type: string,
 }
 
-export type PrivateFields = {
-	_privateField: string,
+export type PrivateFields = {}
+
+export type PublicStaticMethods<I> = {
+	new: () -> I,
 }
 
-export type PublicStaticMethods = {
-	publicStaticMethod: () -> (),
-	new: () -> InstanceInterface,
-	getCount: () -> number,
-	is: (object: any) -> boolean,
+export type PrivateStaticMethods = {}
+
+export type PublicMethods<I> = {
+	toString: (self: I) -> string,
+	signalMethod: (self: I) -> number,
 }
 
-export type PrivateStaticMethods = {
-	_incrementCount: () -> (),
-}
-
-export type PublicMethods = {
-	toString: (self: NonStaticDomain) -> string,
-}
-
-export type PrivateMethods = {
-	_privateMethod: (self: InternalInstance) -> (),
-}
-
-export type StaticDomain = PrivateStaticMethods & PrivateStaticFields & PublicStaticFields & PublicStaticMethods
-export type NonStaticDomain = PublicFields & PrivateFields & PublicMethods & PrivateMethods
+export type PrivateMethods<I> = {}
 
 --[[
 Public interface
 ]]
-export type InstanceInterface = PublicFields & PublicMethods
-export type InternalInstanceInterface = InstanceInterface & PrivateFields & PrivateMethods
+export type InstanceInterface = PublicFields & PublicMethods<Instance>
+export type InternalInstanceInterface = InstanceInterface & PrivateFields & PrivateMethods<InternalInstance>
 
 --[[
 Class interface (internal only)
 ]]
-export type ClassInterface = PublicStaticFields & PublicStaticMethods
+export type ClassInterface =
+	typeof(setmetatable(
+		{} :: PublicStaticFields & PublicStaticMethods<Instance> & Object.PublicStaticFields & Object.PublicStaticMethods<Instance>,
+		Object
+	))
 export type InternalClassInterface =
-	ClassInterface
+	PublicStaticFields
+	& PublicStaticMethods<Instance>
 	& PrivateStaticFields
 	& PrivateStaticMethods
-	& PublicMethods
-	& PrivateMethods
+	& PublicMethods<Instance>
+	& PrivateMethods<InternalInstance>
+	& Object.PublicStaticFields
+	& Object.PublicStaticMethods<Instance>
 
 --[[
 Class
@@ -72,18 +66,15 @@ Create the class and assert that it follows the rules of the
 static interface type, which describes what types the public
 methods should be.
 ]]
-local Signal = {} :: InternalClassInterface
-
+local Signal = setmetatable({} :: InternalClassInterface, Object)
 --[[
 Public static fields
 ]]
-Signal.publicStaticField = "test"
 
 --[[
 Private static fields
 ]]
 Signal.__index = Signal
-Signal._count = 0
 
 --[[
 Instance type
@@ -94,19 +85,14 @@ export type InternalInstance = typeof(setmetatable({} :: InternalInstanceInterfa
 --[[
 Public static method
 ]]
-function Signal.publicStaticMethod() end
 
 --[[
 Private static method definitions
 ]]
-function Signal._incrementCount()
-	Signal._count += 1
-end
 
 --[[
 Private method definitions
 ]]
-function Signal:_privateMethod() end
 
 --[[
 Public static method definitions
@@ -114,6 +100,7 @@ Public static method definitions
 function Signal.new()
 	-- Instance
 	local self: InternalInstance = setmetatable({} :: InternalInstanceInterface, Signal)
+	self.type = "signal"
 
 	-- Public
 	--
@@ -121,16 +108,7 @@ function Signal.new()
 	-- Private
 	--
 
-	Signal._incrementCount()
-	return self :: InstanceInterface
-end
-
-function Signal.getCount()
-	return Signal._count
-end
-
-function Signal.is(object: any)
-	return typeof(object) == "table" and getmetatable(object) == Signal
+	return self :: Instance
 end
 
 return Signal :: ClassInterface

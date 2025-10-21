@@ -26,9 +26,9 @@ export type PrivateFields = {
 	_privateField: string,
 }
 
-export type PublicStaticMethods = {
+export type PublicStaticMethods<I> = {
 	publicStaticMethod: () -> (),
-	new: () -> InstanceInterface,
+	new: () -> I,
 	getCount: () -> number,
 	is: (object: any) -> boolean,
 }
@@ -37,33 +37,25 @@ export type PrivateStaticMethods = {
 	_incrementCount: () -> (),
 }
 
-export type PublicMethods = {
-	toString: (self: NonStaticDomain) -> string,
+export type PublicMethods<I> = {
+	toString: (self: I) -> string,
 }
 
-export type PrivateMethods = {
-	_privateMethod: (self: InternalInstance) -> (),
+export type PrivateMethods<I> = {
+	_privateMethod: (self: I) -> (),
 }
-
-export type StaticDomain = PrivateStaticMethods & PrivateStaticFields & PublicStaticFields & PublicStaticMethods
-export type NonStaticDomain = PublicFields & PrivateFields & PublicMethods & PrivateMethods
-
---[[
-Public interface
-]]
-export type InstanceInterface = PublicFields & PublicMethods
-export type InternalInstanceInterface = InstanceInterface & PrivateFields & PrivateMethods
 
 --[[
 Class interface (internal only)
 ]]
-export type ClassInterface = PublicStaticFields & PublicStaticMethods
+export type ClassInterface = typeof(setmetatable({} :: PublicStaticFields & PublicStaticMethods<Instance>, {}))
 export type InternalClassInterface =
-	ClassInterface
+	PublicStaticFields
+	& PublicStaticMethods<Instance>
 	& PrivateStaticFields
 	& PrivateStaticMethods
-	& PublicMethods
-	& PrivateMethods
+	& PublicMethods<Instance>
+	& PrivateMethods<InternalInstance>
 
 --[[
 Class
@@ -72,7 +64,7 @@ Create the class and assert that it follows the rules of the
 static interface type, which describes what types the public
 methods should be.
 ]]
-local Object = {} :: InternalClassInterface
+local Object = setmetatable({} :: InternalClassInterface, {})
 
 --[[
 Public static fields
@@ -84,6 +76,12 @@ Private static fields
 ]]
 Object.__index = Object
 Object._count = 0
+
+--[[
+Public interface
+]]
+export type InstanceInterface = PublicFields & PublicMethods<Instance>
+export type InternalInstanceInterface = InstanceInterface & PrivateFields & PrivateMethods<InternalInstance>
 
 --[[
 Instance type
@@ -122,7 +120,7 @@ function Object.new()
 	--
 
 	Object._incrementCount()
-	return self :: InstanceInterface
+	return self :: Instance
 end
 
 function Object.getCount()
