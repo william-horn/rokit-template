@@ -5,49 +5,55 @@
 
 	Object class
 ]]
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Shared = ReplicatedStorage.Shared
+-- local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- local Shared = ReplicatedStorage.Shared
+-- local TableType = require(Shared.Types.Table)
 
-local TableType = require(Shared.Types.Table)
+export type PublicStaticFields = {
+	test: number,
+}
 
---[[
-Public fields (internal & external)
+export type PrivateStaticFields = {
+	__index: ClassInterface,
+	_count: number,
+}
 
-This interface describes what the fields should look like for
-an instance of this class
-]]
-type ObjectPublicFields = {}
+export type PublicFields = {}
 
---[[
-Public methods (internal & external)
+export type PrivateFields = {
+	_privateField: string,
+}
 
-This interface describes what the API should look like
-for an instance of this class. It also describes what 
-methods should be defined at the class level, and what
-their types should be.
-]]
-type ObjectPublicMethods = {
+export type PublicStaticMethods = {}
+
+export type PrivateStaticMethods = {
+	_incrementCount: (self: ClassInterface) -> (),
+}
+
+export type PublicMethods = {
 	toString: (self: Object) -> string,
+}
+
+export type PrivateMethods = {
+	_privateMethod: (self: InternalInstanceInterface) -> (),
 }
 
 --[[
 Public interface
-
-This interface describes what the entire interface should
-look like for an instance of this class including the public
-fields and the public methods.
 ]]
-type ObjectPublicInterface = ObjectPublicFields & ObjectPublicMethods & TableType.Map<string, any>
+export type InstanceInterface = PublicFields & PublicMethods
+export type InternalInstanceInterface = InstanceInterface & PrivateFields & PrivateMethods
 
 --[[
-Static interface (internal only)
-
-We create an internal interface for the class in order to
-ensure that the public method type definitions match up with
-the methods that are defined internally. This is why we are
-joining `___PublicMethods` with the general map type
+Class interface (internal only)
 ]]
-type ObjectStaticInterface = ObjectPublicMethods & TableType.Map<string, any>
+type ClassInterface =
+	PublicMethods
+	& PrivateMethods
+	& PublicStaticMethods
+	& PrivateStaticMethods
+	& PrivateStaticFields
+	& PublicStaticFields
 
 --[[
 Class
@@ -56,58 +62,47 @@ Create the class and assert that it follows the rules of the
 static interface type, which describes what types the public
 methods should be.
 ]]
-local Object = {} :: ObjectStaticInterface
+local Object = {} :: ClassInterface
 
 --[[
 Instance type
-
-This type refers to the actual instance object that is created
-upon instantiation.
 ]]
-export type Object = typeof(setmetatable({} :: ObjectPublicInterface, Object))
+export type Instance = typeof(setmetatable({} :: InstanceInterface, Object))
+export type InternalInstance = typeof(setmetatable({} :: InternalInstanceInterface, Object))
 
 --[[
-Private static fields/methods
+Public static field definitions
+]]
+Object.test = 10
 
-These fields are defined at the class level and are hidden from
-both the public and static interfaces. They are not accessible
-in general from the class level unless specified in the class 
-export object at the bottom of the module.
-
-These fields are accessible at the instance level, but they
-are hidden from the interface and their types are inferred
-as `any`. Therefore, whenever accessing these fields, a type
-assertion should always be used so that the type system knows
-what they are.
+--[[
+Private static field definitions
 ]]
 Object.__index = Object
 Object._count = 0
 
+--[[
+Private static method definitions
+]]
 function Object:_incrementCount()
 	self._count += 1
 end
 
---[[
-Public methods
+function Object:_privateMethod() end
 
-These methods are available only to instances of this class.
-Internally, they will be visible on the static class interface
-of `_____StaticInterface`, but they will not be visible on 
-such interface after the class is exported.
+--[[
+Public method definitions
 ]]
 function Object:toString()
 	return "Object"
 end
 
 --[[
-Public Static methods
-
-These methods are constructor or utility functions available only
-at the class level.
+Public static method definitions
 ]]
 local function new()
 	-- Instance
-	local self: Object = setmetatable({} :: ObjectPublicInterface, Object)
+	local self: InternalInstance = setmetatable({} :: InternalInstanceInterface, Object)
 
 	-- Public
 	--
@@ -116,7 +111,7 @@ local function new()
 	--
 
 	Object:_incrementCount()
-	return self
+	return self :: InstanceInterface
 end
 
 local function getCount()
