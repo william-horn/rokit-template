@@ -14,29 +14,38 @@ export type PublicStaticFields = {
 }
 
 export type PrivateStaticFields = {
-	__index: ClassInterface,
 	_count: number,
 }
 
-export type PublicFields = {}
+export type PublicFields = {
+	publicField: string,
+}
 
 export type PrivateFields = {
 	_privateField: string,
 }
 
-export type PublicStaticMethods = {}
+export type PublicStaticMethods = {
+	publicStaticMethod: (self: StaticDomain) -> (),
+	new: () -> InstanceInterface,
+	getCount: () -> number,
+	is: (object: any) -> boolean,
+}
 
 export type PrivateStaticMethods = {
-	_incrementCount: (self: ClassInterface) -> (),
+	_incrementCount: (self: StaticDomain) -> (),
 }
 
 export type PublicMethods = {
-	toString: (self: Object) -> string,
+	toString: (self: NonStaticDomain) -> string,
 }
 
 export type PrivateMethods = {
-	_privateMethod: (self: InternalInstanceInterface) -> (),
+	_privateMethod: (self: NonStaticDomain) -> (),
 }
+
+export type StaticDomain = PrivateStaticMethods & PrivateStaticFields & PublicStaticFields & PublicStaticMethods
+export type NonStaticDomain = PublicFields & PrivateFields & PublicMethods & PrivateMethods
 
 --[[
 Public interface
@@ -47,13 +56,11 @@ export type InternalInstanceInterface = InstanceInterface & PrivateFields & Priv
 --[[
 Class interface (internal only)
 ]]
-type ClassInterface =
-	PublicMethods
-	& PrivateMethods
-	& PublicStaticMethods
-	& PrivateStaticMethods
-	& PrivateStaticFields
-	& PublicStaticFields
+export type ClassInterface = PublicStaticFields & PublicStaticMethods
+export type InternalClassInterface = {
+	staticDomain: StaticDomain,
+	nonStaticDomain: NonStaticDomain,
+}
 
 --[[
 Class
@@ -62,47 +69,52 @@ Create the class and assert that it follows the rules of the
 static interface type, which describes what types the public
 methods should be.
 ]]
-local Object = {} :: ClassInterface
+local Object = {} :: InternalClassInterface
+Object.staticDomain = {} :: StaticDomain
+Object.nonStaticDomain = {} :: NonStaticDomain
 
 --[[
 Instance type
 ]]
-export type Instance = typeof(setmetatable({} :: InstanceInterface, Object))
-export type InternalInstance = typeof(setmetatable({} :: InternalInstanceInterface, Object))
+export type Instance = typeof(setmetatable({} :: InstanceInterface, { __index = Object.nonStaticDomain }))
+export type InternalInstance = typeof(setmetatable(
+	{} :: InternalInstanceInterface,
+	{ __index = Object.nonStaticDomain }
+))
 
 --[[
 Public static field definitions
 ]]
-Object.test = 10
+Object.staticDomain.test = 10
 
 --[[
 Private static field definitions
 ]]
-Object.__index = Object
-Object._count = 0
+Object.staticDomain._count = 0
+
+--[[
+Public static method
+]]
+function Object.staticDomain:publicStaticMethod() end
 
 --[[
 Private static method definitions
 ]]
-function Object:_incrementCount()
+function Object.staticDomain:_incrementCount()
 	self._count += 1
 end
 
-function Object:_privateMethod() end
-
 --[[
-Public method definitions
+Private method definitions
 ]]
-function Object:toString()
-	return "Object"
-end
+function Object.nonStaticDomain:_privateMethod() end
 
 --[[
 Public static method definitions
 ]]
-local function new()
+function Object.staticDomain.new()
 	-- Instance
-	local self: InternalInstance = setmetatable({} :: InternalInstanceInterface, Object)
+	local self: InternalInstance = setmetatable({} :: InternalInstanceInterface, { __index = Object.nonStaticDomain })
 
 	-- Public
 	--
@@ -110,21 +122,16 @@ local function new()
 	-- Private
 	--
 
-	Object:_incrementCount()
+	Object.staticDomain:_incrementCount()
 	return self :: InstanceInterface
 end
 
-local function getCount()
-	local count: number = Object._count
-	return count
+function Object.staticDomain.getCount()
+	return Object.staticDomain._count
 end
 
-local function is(object: any)
-	return typeof(object) == "table" and getmetatable(object) == Object
+function Object.staticDomain.is(object: any)
+	return typeof(object) == "table" and getmetatable(object).__index == Object.nonStaticDomain
 end
 
-return {
-	is = is,
-	new = new,
-	getCount = getCount,
-}
+return Object.staticDomain :: ClassInterface

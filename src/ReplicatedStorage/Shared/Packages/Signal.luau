@@ -5,50 +5,62 @@
 
 	Signal class
 ]]
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Shared = ReplicatedStorage.Shared
+-- local ReplicatedStorage = game:GetService("ReplicatedStorage")
+-- local Shared = ReplicatedStorage.Shared
+-- local TableType = require(Shared.Types.Table)
 
-local Object = require(script.Parent.Object)
-local TableType = require(Shared.Types.Table)
-
---[[
-Public fields (internal & external)
-
-This interface describes what the fields should look like for
-an instance of this class
-]]
-type SignalPublicFields = {}
-
---[[
-Public methods (internal & external)
-
-This interface describes what the API should look like
-for an instance of this class. It also describes what 
-methods should be defined at the class level, and what
-their types should be.
-]]
-type SignalPublicMethods = {
-	toString: (self: Signal) -> string,
+export type PublicStaticFields = {
+	test: number,
 }
+
+export type PrivateStaticFields = {
+	_count: number,
+}
+
+export type PublicFields = {
+	publicField: string,
+}
+
+export type PrivateFields = {
+	_privateField: string,
+}
+
+export type PublicStaticMethods = {
+	publicStaticMethod: (self: StaticDomain) -> (),
+	new: () -> InstanceInterface,
+	getCount: () -> number,
+	is: (object: any) -> boolean,
+}
+
+export type PrivateStaticMethods = {
+	_incrementCount: (self: StaticDomain) -> (),
+}
+
+export type PublicMethods = {
+	toString: (self: NonStaticDomain) -> string,
+}
+
+export type PrivateMethods = {
+	_privateMethod: (self: NonStaticDomain) -> (),
+}
+
+export type StaticDomain = PrivateStaticMethods & PrivateStaticFields & PublicStaticFields & PublicStaticMethods
+export type NonStaticDomain = PublicFields & PrivateFields & PublicMethods & PrivateMethods
 
 --[[
 Public interface
-
-This interface describes what the entire interface should
-look like for an instance of this class including the public
-fields and the public methods.
 ]]
-type SignalPublicInterface = SignalPublicFields & SignalPublicMethods & TableType.Map<string, any>
+export type InstanceInterface = PublicFields & PublicMethods
+export type InternalInstanceInterface = InstanceInterface & PrivateFields & PrivateMethods
 
 --[[
-Static interface (internal only)
-
-We create an internal interface for the class in order to
-ensure that the public method type definitions match up with
-the methods that are defined internally. This is why we are
-joining `___PublicMethods` with the general map type
+Class interface (internal only)
 ]]
-type SignalStaticInterface = SignalPublicMethods & TableType.Map<string, any>
+export type ClassInterface = PublicStaticFields & PublicStaticMethods
+export type InternalClassInterface = {
+	staticDomain: StaticDomain,
+	nonStaticDomain: NonStaticDomain,
+}
 
 --[[
 Class
@@ -57,58 +69,52 @@ Create the class and assert that it follows the rules of the
 static interface type, which describes what types the public
 methods should be.
 ]]
-local Signal = setmetatable({} :: SignalStaticInterface, Object)
+local Signal = {} :: InternalClassInterface
+Signal.staticDomain = {} :: StaticDomain
+Signal.nonStaticDomain = {} :: NonStaticDomain
 
 --[[
 Instance type
-
-This type refers to the actual instance object that is created
-upon instantiation.
 ]]
-export type Signal = typeof(setmetatable({} :: SignalPublicInterface, Signal))
+export type Instance = typeof(setmetatable({} :: InstanceInterface, { __index = Signal.nonStaticDomain }))
+export type InternalInstance = typeof(setmetatable(
+	{} :: InternalInstanceInterface,
+	{ __index = Signal.nonStaticDomain }
+))
 
 --[[
-Private static fields/methods
-
-These fields are defined at the class level and are hidden from
-both the public and static interfaces. They are not accessible
-in general from the class level unless specified in the class 
-export object at the bottom of the module.
-
-These fields are accessible at the instance level, but they
-are hidden from the interface and their types are inferred
-as `any`. Therefore, whenever accessing these fields, a type
-assertion should always be used so that the type system knows
-what they are.
+Public static field definitions
 ]]
-Signal.__index = Signal
--- Signal._count = 0
-
--- function Signal:_incrementCount()
--- 	self._count += 1
--- end
+Signal.staticDomain.test = 10
 
 --[[
-Public methods
-
-These methods are available only to instances of this class.
-Internally, they will be visible on the static class interface
-of `_____StaticInterface`, but they will not be visible on 
-such interface after the class is exported.
+Private static field definitions
 ]]
-function Signal:toString()
-	return "Signal"
+Signal.staticDomain._count = 0
+
+--[[
+Public static method
+]]
+function Signal.staticDomain:publicStaticMethod() end
+
+--[[
+Private static method definitions
+]]
+function Signal.staticDomain:_incrementCount()
+	self._count += 1
 end
 
 --[[
-Public Static methods
-
-These methods are constructor or utility functions available only
-at the class level.
+Private method definitions
 ]]
-local function new()
+function Signal.nonStaticDomain:_privateMethod() end
+
+--[[
+Public static method definitions
+]]
+function Signal.staticDomain.new()
 	-- Instance
-	local self: Signal = setmetatable({} :: SignalPublicInterface, Signal)
+	local self: InternalInstance = setmetatable({} :: InternalInstanceInterface, { __index = Signal.nonStaticDomain })
 
 	-- Public
 	--
@@ -116,21 +122,16 @@ local function new()
 	-- Private
 	--
 
-	-- Signal:_incrementCount()
-	return self
+	Signal.staticDomain:_incrementCount()
+	return self :: InstanceInterface
 end
 
--- local function getCount()
--- 	local count: number = Signal._count
--- 	return count
--- end
-
-local function is(object: any)
-	return typeof(object) == "table" and getmetatable(object) == Signal
+function Signal.staticDomain.getCount()
+	return Signal.staticDomain._count
 end
 
-return {
-	is = is,
-	new = new,
-	-- getCount = getCount,
-}
+function Signal.staticDomain.is(object: any)
+	return typeof(object) == "table" and getmetatable(object).__index == Signal.nonStaticDomain
+end
+
+return Signal.staticDomain :: ClassInterface
