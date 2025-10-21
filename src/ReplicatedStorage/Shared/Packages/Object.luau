@@ -10,10 +10,11 @@
 -- local TableType = require(Shared.Types.Table)
 
 export type PublicStaticFields = {
-	test: number,
+	publicStaticField: string,
 }
 
 export type PrivateStaticFields = {
+	__index: InternalClassInterface,
 	_count: number,
 }
 
@@ -26,14 +27,14 @@ export type PrivateFields = {
 }
 
 export type PublicStaticMethods = {
-	publicStaticMethod: (self: StaticDomain) -> (),
+	publicStaticMethod: () -> (),
 	new: () -> InstanceInterface,
 	getCount: () -> number,
 	is: (object: any) -> boolean,
 }
 
 export type PrivateStaticMethods = {
-	_incrementCount: (self: StaticDomain) -> (),
+	_incrementCount: () -> (),
 }
 
 export type PublicMethods = {
@@ -41,7 +42,7 @@ export type PublicMethods = {
 }
 
 export type PrivateMethods = {
-	_privateMethod: (self: NonStaticDomain) -> (),
+	_privateMethod: (self: InternalInstance) -> (),
 }
 
 export type StaticDomain = PrivateStaticMethods & PrivateStaticFields & PublicStaticFields & PublicStaticMethods
@@ -57,10 +58,12 @@ export type InternalInstanceInterface = InstanceInterface & PrivateFields & Priv
 Class interface (internal only)
 ]]
 export type ClassInterface = PublicStaticFields & PublicStaticMethods
-export type InternalClassInterface = {
-	staticDomain: StaticDomain,
-	nonStaticDomain: NonStaticDomain,
-}
+export type InternalClassInterface =
+	ClassInterface
+	& PrivateStaticFields
+	& PrivateStaticMethods
+	& PublicMethods
+	& PrivateMethods
 
 --[[
 Class
@@ -70,51 +73,47 @@ static interface type, which describes what types the public
 methods should be.
 ]]
 local Object = {} :: InternalClassInterface
-Object.staticDomain = {} :: StaticDomain
-Object.nonStaticDomain = {} :: NonStaticDomain
+
+--[[
+Public static fields
+]]
+Object.publicStaticField = "test"
+
+--[[
+Private static fields
+]]
+Object.__index = Object
+Object._count = 0
 
 --[[
 Instance type
 ]]
-export type Instance = typeof(setmetatable({} :: InstanceInterface, { __index = Object.nonStaticDomain }))
-export type InternalInstance = typeof(setmetatable(
-	{} :: InternalInstanceInterface,
-	{ __index = Object.nonStaticDomain }
-))
-
---[[
-Public static field definitions
-]]
-Object.staticDomain.test = 10
-
---[[
-Private static field definitions
-]]
-Object.staticDomain._count = 0
+export type Instance = typeof(setmetatable({} :: InstanceInterface, Object))
+export type InternalInstance = typeof(setmetatable({} :: InternalInstanceInterface, Object))
 
 --[[
 Public static method
 ]]
-function Object.staticDomain:publicStaticMethod() end
+function Object.publicStaticMethod() end
 
 --[[
 Private static method definitions
 ]]
-function Object.staticDomain:_incrementCount()
-	self._count += 1
+function Object._incrementCount()
+	Object._count += 1
 end
 
 --[[
 Private method definitions
 ]]
-function Object.nonStaticDomain:_privateMethod() end
+function Object:_privateMethod() end
 
 --[[
 Public static method definitions
 ]]
-function Object.staticDomain.new()
+function Object.new()
 	-- Instance
-	local self: InternalInstance = setmetatable({} :: InternalInstanceInterface, { __index = Object.nonStaticDomain })
+	local self: InternalInstance = setmetatable({} :: InternalInstanceInterface, Object)
 
 	-- Public
 	--
@@ -122,16 +121,16 @@ function Object.staticDomain.new()
 	-- Private
 	--
 
-	Object.staticDomain:_incrementCount()
+	Object._incrementCount()
 	return self :: InstanceInterface
 end
 
-function Object.staticDomain.getCount()
-	return Object.staticDomain._count
+function Object.getCount()
+	return Object._count
 end
 
-function Object.staticDomain.is(object: any)
-	return typeof(object) == "table" and getmetatable(object).__index == Object.nonStaticDomain
+function Object.is(object: any)
+	return typeof(object) == "table" and getmetatable(object) == Object
 end
 
-return Object.staticDomain :: ClassInterface
+return Object :: ClassInterface

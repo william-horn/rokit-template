@@ -9,5 +9,3 @@ local Server = require(script.server)
 local Object = require(Shared.Packages.Object)
 
 local o = Object.new()
-
-print(Object.getCount())
