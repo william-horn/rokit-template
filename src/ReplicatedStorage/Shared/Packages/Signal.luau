@@ -11,17 +11,11 @@ local Object = require(script.Parent.Object)
 ]]
 
 -- Non-static types
-type SignalMethods<SignalInstance> = {
-	signalTest: (self: SignalInstance) -> string,
-}
+type SignalMethods<SignalInstance> = {}
 
-type SignalFields = {
-	signalKey: string,
-}
+type SignalFields = {}
 
-type SignalFieldsPrivate = {
-	_signalId: number,
-}
+type SignalFieldsPrivate = {}
 
 type SignalMethodsPrivate = {}
 
