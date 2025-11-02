@@ -10,8 +10,8 @@ local Object = require(script.Parent.Object)
 	Signal class
 ]]
 
-type SignalMethods = {
-	signalTest: (self: SignalInstancePrivate) -> string,
+type SignalMethods<SignalInstance> = {
+	signalTest: (self: SignalInstance) -> string,
 }
 
 type SignalFields = {
@@ -24,19 +24,19 @@ type SignalFieldsPrivate = {
 
 type SignalMethodsPrivate = {}
 
-type SignalInstance = SignalMethods & SignalFields
+type SignalInstance = SignalMethods<SignalInstancePrivate> & SignalFields & Object.ObjectInstance -- inheritance
 type SignalInstancePrivate = SignalInstance & SignalFieldsPrivate & SignalMethodsPrivate
 
-export type SignalClass = {
+export type SignalClass<SignalInstance> = {
 	new: () -> SignalInstance,
-}
+} & Object.ObjectClass<SignalInstance> -- inheritance
 
-type SignalClassPrivate = SignalClass & SignalMethods & SignalMethodsPrivate & {
+type SignalClassPrivate = SignalClass<SignalInstance> & SignalMethods<SignalInstancePrivate> & SignalMethodsPrivate & {
 	__index: TableType.Map<string, any>,
 }
 
 local Signal = {} :: SignalClassPrivate
-Signal.__index = Signal
+Signal.__index = setmetatable(Signal, Object)
 
 function Signal.new()
 	-- Init public & private fields
@@ -46,14 +46,16 @@ function Signal.new()
 	}
 
 	-- Create instance
-	local o = setmetatable(_o :: SignalInstancePrivate, Signal)
+	local o = setmetatable(Object.new() :: SignalInstancePrivate, Signal)
+	o._signalId = _o._signalId
+	o.signalKey = _o.signalKey
 
 	-- Return new instance
-	return o :: SignalInstance
+	return o
 end
 
 function Signal:signalTest()
 	return "Signal test"
 end
 
-return Signal
+return Signal :: SignalClass<SignalInstance>

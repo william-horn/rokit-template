@@ -7,6 +7,8 @@ local Server = {}
 --[[
 Run all server start up methods
 ]]
-function Server:run() end
+function Server:run()
+	local s = Signal.new()
+end
 
 return Server

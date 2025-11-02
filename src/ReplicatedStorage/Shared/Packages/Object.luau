@@ -10,8 +10,8 @@ local Shared = ReplicatedStorage.Shared
 local TableType = require(Shared.Types.Table)
 
 -- Non-static types
-type ObjectMethods = {
-	test: (self: ObjectInstancePrivate) -> number,
+type ObjectMethods<ObjectInstance> = {
+	test: (self: ObjectInstance) -> number,
 }
 
 type ObjectFields = {
@@ -26,17 +26,17 @@ type ObjectMethodsPrivate = {
 	_private: (self: ObjectInstancePrivate) -> string,
 }
 
-type ObjectInstance = ObjectMethods & ObjectFields
+export type ObjectInstance = ObjectMethods<ObjectInstancePrivate> & ObjectFields
 type ObjectInstancePrivate = ObjectInstance & ObjectFieldsPrivate & ObjectMethodsPrivate
 
 -- Static types
-export type ObjectClass = {
+export type ObjectClass<ObjectInstance> = {
 	new: () -> ObjectInstance,
 	static: () -> number,
 	className: string,
 }
 
-type ObjectClassPrivate = ObjectClass & ObjectMethods & ObjectMethodsPrivate & {
+type ObjectClassPrivate = ObjectClass<ObjectInstance> & ObjectMethods<ObjectInstancePrivate> & ObjectMethodsPrivate & {
 	__index: TableType.Map<string, any>,
 	_count: number,
 }
@@ -62,7 +62,7 @@ function Object.new()
 	local o = setmetatable(_o :: ObjectInstancePrivate, Object)
 
 	-- Return new instance
-	return o :: ObjectInstance
+	return o
 end
 
 -- Public static methods
@@ -81,4 +81,4 @@ function Object:test()
 	return self._id
 end
 
-return Object :: ObjectClass
+return Object :: ObjectClass<ObjectInstance>
