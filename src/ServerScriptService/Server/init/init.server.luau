@@ -4,8 +4,4 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage.Shared
 
 local Server = require(script.server)
--- Server:run()
-
-local Object = require(Shared.Packages.Object)
-
-local o = Object.new()
+Server:run()
