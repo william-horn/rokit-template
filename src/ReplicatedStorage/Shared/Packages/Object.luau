@@ -11,19 +11,17 @@ local TableType = require(Shared.Types.Table)
 
 -- Non-static types
 type ObjectMethods<ObjectInstance> = {
-	test: (self: ObjectInstance) -> number,
+	toString: (self: ObjectInstance) -> string,
 }
 
-type ObjectFields = {
-	key: string,
-}
+type ObjectFields = {}
 
 type ObjectFieldsPrivate = {
-	_id: number,
+	_serialNumber: number,
 }
 
 type ObjectMethodsPrivate = {
-	_private: (self: ObjectInstancePrivate) -> string,
+	-- _private: (self: ObjectInstancePrivate) -> string,
 }
 
 export type ObjectInstance = ObjectMethods<ObjectInstancePrivate> & ObjectFields
@@ -32,53 +30,61 @@ type ObjectInstancePrivate = ObjectInstance & ObjectFieldsPrivate & ObjectMethod
 -- Static types
 export type ObjectClass<ObjectInstance> = {
 	new: () -> ObjectInstance,
-	static: () -> number,
-	className: string,
+	getInstanceCount: () -> number,
 }
 
 type ObjectClassPrivate = ObjectClass<ObjectInstance> & ObjectMethods<ObjectInstancePrivate> & ObjectMethodsPrivate & {
 	__index: TableType.Map<string, any>,
-	_count: number,
+	_instancesCreated: number,
+	_instancesDestroyed: number,
+	_className: string,
+	_incrementInstanceCount: () -> (),
 }
 
 local Object = {} :: ObjectClassPrivate
 
 -- Private static fields
 Object.__index = Object
-Object._count = 0
+Object._instancesCreated = 0
+Object._instancesDestroyed = 0
+Object._className = "Object"
 
 -- Public static fields
-Object.className = "Object"
 
 -- Constructor
 function Object.new()
 	-- Init public & private fields
 	local _o: ObjectFieldsPrivate & ObjectFields = {
-		_id = 0,
-		key = "",
+		_serialNumber = Object.getInstanceCount(),
 	}
 
 	-- Create instance
 	local o = setmetatable(_o :: ObjectInstancePrivate, Object)
+
+	Object._incrementInstanceCount()
 
 	-- Return new instance
 	return o
 end
 
 -- Public static methods
-function Object.static()
-	return Object._count
+function Object.getInstanceCount()
+	return Object._instancesCreated
+end
+
+-- Private static methods
+function Object._incrementInstanceCount()
+	Object._instancesCreated += 1
 end
 
 -- Private instance methods
-function Object:_private()
-	return "some data"
-end
+-- function Object:_private()
+-- 	return "some data"
+-- end
 
 -- Public instance methods
-function Object:test()
-	print(self:_private())
-	return self._id
+function Object:toString()
+	return Object._className
 end
 
 return Object :: ObjectClass<ObjectInstance>

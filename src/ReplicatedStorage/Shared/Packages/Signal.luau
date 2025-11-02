@@ -10,6 +10,7 @@ local Object = require(script.Parent.Object)
 	Signal class
 ]]
 
+-- Non-static types
 type SignalMethods<SignalInstance> = {
 	signalTest: (self: SignalInstance) -> string,
 }
@@ -24,11 +25,13 @@ type SignalFieldsPrivate = {
 
 type SignalMethodsPrivate = {}
 
-type SignalInstance = SignalMethods<SignalInstancePrivate> & SignalFields & Object.ObjectInstance -- inheritance
+export type SignalInstance = SignalMethods<SignalInstancePrivate> & SignalFields & Object.ObjectInstance -- inheritance
 type SignalInstancePrivate = SignalInstance & SignalFieldsPrivate & SignalMethodsPrivate
 
+-- Static types
 export type SignalClass<SignalInstance> = {
 	new: () -> SignalInstance,
+	sigCount: number,
 } & Object.ObjectClass<SignalInstance> -- inheritance
 
 type SignalClassPrivate = SignalClass<SignalInstance> & SignalMethods<SignalInstancePrivate> & SignalMethodsPrivate & {
@@ -36,8 +39,14 @@ type SignalClassPrivate = SignalClass<SignalInstance> & SignalMethods<SignalInst
 }
 
 local Signal = {} :: SignalClassPrivate
+
+-- Private static fields
 Signal.__index = setmetatable(Signal, Object)
 
+-- Public static fields
+Signal.sigCount = 10
+
+-- Constructor
 function Signal.new()
 	-- Init public & private fields
 	local _o: SignalFieldsPrivate & SignalFields = {
@@ -54,6 +63,11 @@ function Signal.new()
 	return o
 end
 
+-- Public static methods
+
+-- Private instance methods
+
+-- Public instance methods
 function Signal:signalTest()
 	return "Signal test"
 end

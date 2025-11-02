@@ -1,26 +1,36 @@
 package test;
 
 class Thing {
-    public static int count = 3;
+    public static int count = 0;
+
+    public Thing() {
+        count++;
+    }
 
     public static int getCount() {
         return count;
     }
 
-    public static void setCount(int n) {
-        count = n;
+    public static void incrementCount() {
+        count++;
     }
 }
 
 class Foo extends Thing {
-    public void test() {
-        System.out.println(count);
+    public static int count = 0;
+    public Foo() {
+        incrementCount();
+    }
+
+    public static int getCount() {
+        return count;
     }
 }
 
 class Test {
     public static void main(String[] args) {
-        Thing.setCount(300);
-        new Foo().test();
+        new  Thing();
+        new Thing();
+        System.out.println(Foo.getCount());
     }
 }
