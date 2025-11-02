@@ -9,33 +9,40 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Class = require(ReplicatedStorage.Shared.Interfaces.Class)
 
 -- Non-static types
-type ObjectMethods<ObjectInstance> = {
-	toString: (self: ObjectInstance) -> string,
+type ObjectMethods<O> = {
+	toString: (self: O) -> string,
 }
 
 type ObjectFields = {}
 
-type ObjectFieldsPrivate = Class.ObjectPrivateInterface & {
+type ObjectFieldsPrivate = {
 	-- private instance fields
 }
 
-type ObjectMethodsPrivate = {
+type ObjectMethodsPrivate<O> = {
 	-- private instance methods
 }
 
-export type ObjectInstance = ObjectMethods<ObjectInstancePrivate> & ObjectFields
-type ObjectInstancePrivate = ObjectInstance & ObjectFieldsPrivate & ObjectMethodsPrivate
+export type ObjectInstance<O> = ObjectMethods<O> & ObjectFields
+export type ObjectInstancePrivate = 
+	ObjectInstance<ObjectInstancePrivate> 
+	& ObjectFieldsPrivate 
+	& ObjectMethodsPrivate<ObjectInstancePrivate> 
+	& Class.ObjectPrivateInterface<ObjectInstancePrivate>
 
 -- Static types
-export type ObjectClass<ObjectInstance> = Class.ClassPublicInterface<ObjectInstance> & {
-	-- static types here
+export type ObjectClass<O> = Class.ClassPublicInterface<O> & {
+	-- public static types here
 }
 
 type ObjectClassPrivate =
-	ObjectClass<ObjectInstance>
+	ObjectClass<ObjectInstance<ObjectInstancePrivate>>
 	& ObjectMethods<ObjectInstancePrivate>
-	& ObjectMethodsPrivate
-	& Class.ClassPrivateInterface
+	& ObjectMethodsPrivate<ObjectInstancePrivate>
+	& Class.ClassPrivateInterface<ObjectInstancePrivate>
+	& {
+		-- private static types here
+	}
 
 local Object = {} :: ObjectClassPrivate
 
@@ -49,13 +56,9 @@ Object._instancesDestroyed = 0
 -- Constructor
 function Object.new()
 	-- Init public & private fields
-	local _o: ObjectFieldsPrivate & ObjectFields = {
-		_serialNumber = Object.getInstanceCount(),
-		_className = "Object",
-	}
-
-	-- Create instance
-	local o = setmetatable(_o :: ObjectInstancePrivate, Object)
+	local o = setmetatable({} :: ObjectInstancePrivate, Object)
+	o._serialNumber = Object.getInstanceCount()
+	o._className = "Object"
 
 	Object._incrementInstanceCount()
 
@@ -83,4 +86,4 @@ function Object:toString()
 	return self._className
 end
 
-return Object :: ObjectClass<ObjectInstance>
+return Object :: ObjectClass<ObjectInstance<ObjectInstancePrivate>>

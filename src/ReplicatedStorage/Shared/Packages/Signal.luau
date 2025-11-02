@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local TableType = require(Shared.Types.Table)
 local Object = require(script.Parent.Object)
+local Class = require(ReplicatedStorage.Shared.Interfaces.Class)
 --[[
 	@author: William J. Horn
 	@written: 10/20/2025
@@ -11,26 +12,45 @@ local Object = require(script.Parent.Object)
 ]]
 
 -- Non-static types
-type SignalMethods<SignalInstance> = {}
+type SignalMethods<O> = {
+	toString: (self: O) -> string
+}
 
 type SignalFields = {}
 
-type SignalFieldsPrivate = {}
+type SignalFieldsPrivate = {
+	-- _super: Object.ObjectInstance<Object.ObjectInstancePrivate>
+}
 
-type SignalMethodsPrivate = {}
+type SignalMethodsPrivate<O> = {}
 
-export type SignalInstance = SignalMethods<SignalInstancePrivate> & SignalFields & Object.ObjectInstance -- inheritance
-type SignalInstancePrivate = SignalInstance & SignalFieldsPrivate & SignalMethodsPrivate
+export type SignalInstance<O> = 
+	SignalMethods<O> 
+	& SignalFields 
+	& Object.ObjectInstance<O> -- inheritance
+
+type SignalInstancePrivate =
+	SignalInstance<SignalInstancePrivate>
+	& SignalFieldsPrivate
+	& SignalMethodsPrivate<SignalInstancePrivate>
+	& Class.ObjectPrivateInterface<SignalInstancePrivate>
 
 -- Static types
-export type SignalClass<SignalInstance> = {
-	new: () -> SignalInstance,
-	sigCount: number,
-} & Object.ObjectClass<SignalInstance> -- inheritance
+export type SignalClass<O> =
+	Class.ClassPublicInterface<O>
+	& Object.ObjectClass<O> -- inheriting
+	& {
+		-- public static types here
+	}
 
-type SignalClassPrivate = SignalClass<SignalInstance> & SignalMethods<SignalInstancePrivate> & SignalMethodsPrivate & {
-	__index: TableType.Map<string, any>,
-}
+type SignalClassPrivate =
+	SignalClass<SignalInstance<SignalInstancePrivate>>
+	& SignalMethods<SignalInstancePrivate>
+	& SignalMethodsPrivate<SignalInstancePrivate>
+	& Class.ClassPrivateInterface<SignalInstancePrivate>
+	& {
+		-- private static types here
+	}
 
 local Signal = {} :: SignalClassPrivate
 
@@ -38,20 +58,12 @@ local Signal = {} :: SignalClassPrivate
 Signal.__index = setmetatable(Signal, Object)
 
 -- Public static fields
-Signal.sigCount = 10
 
 -- Constructor
 function Signal.new()
 	-- Init public & private fields
-	local _o: SignalFieldsPrivate & SignalFields = {
-		_signalId = 0,
-		signalKey = "",
-	}
-
-	-- Create instance
-	local o = setmetatable(Object.new() :: SignalInstancePrivate, Signal)
-	o._signalId = _o._signalId
-	o.signalKey = _o.signalKey
+	local o = setmetatable(Object.new() :: SignalFieldsPrivate & Object.ObjectInstancePrivate, Signal)
+	o._className = "Signal"
 
 	-- Return new instance
 	return o
@@ -62,8 +74,5 @@ end
 -- Private instance methods
 
 -- Public instance methods
-function Signal:signalTest()
-	return "Signal test"
-end
 
-return Signal :: SignalClass<SignalInstance>
+return Signal :: SignalClass<SignalInstance<SignalInstancePrivate>>

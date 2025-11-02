@@ -9,8 +9,8 @@ local Server = {}
 Run all server start up methods
 ]]
 function Server:run()
-	local o = Object.new()
-	print(o:toString())
+	local s = Signal.new()
+	print(s:toString())
 end
 
 return Server
