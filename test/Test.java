@@ -2,6 +2,7 @@ package test;
 
 class Thing {
     public static int count = 0;
+    private int field = 0;
 
     public Thing() {
         count++;
@@ -14,10 +15,16 @@ class Thing {
     public static void incrementCount() {
         count++;
     }
+
+    public int pfield() {
+        return field;
+    }
 }
 
 class Foo extends Thing {
     public static int count = 0;
+    private int field = 10;
+
     public Foo() {
         incrementCount();
     }
@@ -29,8 +36,6 @@ class Foo extends Thing {
 
 class Test {
     public static void main(String[] args) {
-        new  Thing();
-        new Thing();
-        System.out.println(Foo.getCount());
+        System.out.println(new Foo().pfield());
     }
 }

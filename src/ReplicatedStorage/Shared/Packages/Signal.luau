@@ -10,74 +10,108 @@ local Class = require(ReplicatedStorage.Shared.Interfaces.Class)
 
 	Signal class
 ]]
-
 -- Non-static types
-type SignalMethods<O> = {
-	toString: (self: O) -> string,
-	thing: (self: O) -> string
+type InstanceFieldsPublic = Class.BaseInstanceFieldsPublic & {
+	-- public instance fields here
 }
 
-type SignalFields = {}
-
-type SignalFieldsPrivate = {
-	_super: Object.ObjectClassPrivate
+type InstanceFieldsPrivate = Class.BaseInstanceFieldsPrivate & {
+	-- private instance fields here
+	_super: Object.ClassInternal
 }
 
-type SignalMethodsPrivate<O> = {}
+type InstanceMethodsPublic<I> = Class.BaseInstanceMethodsPublic<I> & {
+	toString: (self: I) -> string,
+}
 
-export type SignalInstance<O> = 
-	SignalMethods<O> 
-	& SignalFields 
-	& Object.ObjectInstance<O> -- inheritance
+type InstanceMethodsPrivate<I> = Class.BaseInstanceMethodsPrivate<I> & {
+	-- private instance methods
+}
 
-type SignalInstancePrivate =
-	SignalInstance<SignalInstancePrivate>
-	& SignalFieldsPrivate
-	& SignalMethodsPrivate<SignalInstancePrivate>
-	& Class.ObjectPrivateInterface<SignalInstancePrivate>
+export type InstanceFields = InstanceFieldsPrivate & InstanceFieldsPublic
+export type InstanceMethods<I> = InstanceMethodsPrivate<I> & InstanceMethodsPublic<I>
+export type InstancePublic<I> = 
+	InstanceMethodsPublic<I> 
+	& InstanceFieldsPublic 
+	& Object.InstancePublic<I> -- inherit
+
+export type InstanceInternal = 
+	InstancePublic<InstanceInternal> 
+	& InstanceFieldsPrivate 
+	& InstanceMethodsPrivate<InstanceInternal> 
 
 -- Static types
-export type SignalClass<O> =
-	Class.ClassPublicInterface<O>
-	& Object.ObjectClass<O> -- inheriting
-	& {
-		-- public static types here
-	}
+export type ClassFieldsPublic = Class.BaseClassFieldsPublic & {
+	-- public static fields here
+}
 
-type SignalClassPrivate =
-	SignalClass<SignalInstance<SignalInstancePrivate>>
-	& SignalMethods<SignalInstancePrivate>
-	& SignalMethodsPrivate<SignalInstancePrivate>
-	& Class.ClassPrivateInterface<SignalInstancePrivate>
-	& {
-		-- private static types here
-	}
+export type ClassFieldsPrivate = Class.BaseClassFieldsPrivate & {
+	-- private static fields here
+}
 
-local Signal = {} :: SignalClassPrivate
+export type ClassMethodsPublic<O> = Class.BaseClassMethodsPublic<O> & {
+	-- public static methods here
+}
+
+export type ClassMethodsPrivate<O> = Class.BaseClassMethodsPrivate<O> & {
+	-- private static methods here
+}
+
+export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O>
+export type ClassInternal =
+	ClassPublic<InstancePublic<InstanceInternal>>
+	& InstanceMethods<InstanceInternal>
+	& ClassFieldsPrivate
+	& ClassMethodsPrivate<InstancePublic<InstanceInternal>>
+
+local Signal = {} :: ClassInternal
 
 -- Private static fields
 Signal.__index = setmetatable(Signal, Object)
+Signal._instancesCreated = 0
 
 -- Public static fields
 
 -- Constructor
 function Signal.new()
 	-- Init public & private fields
-	local o = setmetatable((Object.new() :: any) :: SignalInstancePrivate, Signal)
+	local _o: InstanceFields = {
+		_className = "",
+		_serialId = 0,
+		_super = {} :: Object.ClassInternal
+	}
+	
+	local o = setmetatable((Object.new() :: any) :: InstanceInternal, Signal)
+
+	-- Assign private fields
 	o._className = "Signal"
-	o._super = Object :: Object.ObjectClassPrivate
+	o._super = Object :: Object.ClassInternal
+	--
+
+	-- Assign public fields
+	--
+
+	Signal._incrementInstanceCount()
 
 	-- Return new instance
 	return o
 end
 
 -- Public static methods
+function Signal.getInstanceCount()
+	return Signal._instancesCreated
+end
+
+-- Private static methods
+function Signal._incrementInstanceCount()
+	Signal._instancesCreated += 1
+end
 
 -- Private instance methods
 
 -- Public instance methods
 function Signal:toString()
-	return self._super.toString(self) .. " - signal"
+	return self._super.toString(self) .. " - SIGNAL"
 end
 
-return Signal :: SignalClass<SignalInstance<SignalInstancePrivate>>
+return Signal :: ClassPublic<InstancePublic<InstanceInternal>>
