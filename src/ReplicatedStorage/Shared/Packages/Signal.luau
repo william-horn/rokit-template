@@ -13,13 +13,14 @@ local Class = require(ReplicatedStorage.Shared.Interfaces.Class)
 
 -- Non-static types
 type SignalMethods<O> = {
-	toString: (self: O) -> string
+	toString: (self: O) -> string,
+	thing: (self: O) -> string
 }
 
 type SignalFields = {}
 
 type SignalFieldsPrivate = {
-	-- _super: Object.ObjectInstance<Object.ObjectInstancePrivate>
+	_super: Object.ObjectClassPrivate
 }
 
 type SignalMethodsPrivate<O> = {}
@@ -62,8 +63,9 @@ Signal.__index = setmetatable(Signal, Object)
 -- Constructor
 function Signal.new()
 	-- Init public & private fields
-	local o = setmetatable(Object.new() :: SignalFieldsPrivate & Object.ObjectInstancePrivate, Signal)
+	local o = setmetatable((Object.new() :: any) :: SignalInstancePrivate, Signal)
 	o._className = "Signal"
+	o._super = Object :: Object.ObjectClassPrivate
 
 	-- Return new instance
 	return o
@@ -74,5 +76,8 @@ end
 -- Private instance methods
 
 -- Public instance methods
+function Signal:toString()
+	return self._super.toString(self) .. " - signal"
+end
 
 return Signal :: SignalClass<SignalInstance<SignalInstancePrivate>>

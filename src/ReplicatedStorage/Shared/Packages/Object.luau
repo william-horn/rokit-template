@@ -11,6 +11,7 @@ local Class = require(ReplicatedStorage.Shared.Interfaces.Class)
 -- Non-static types
 type ObjectMethods<O> = {
 	toString: (self: O) -> string,
+	objectMethod: (self: O) -> number
 }
 
 type ObjectFields = {}
@@ -35,7 +36,7 @@ export type ObjectClass<O> = Class.ClassPublicInterface<O> & {
 	-- public static types here
 }
 
-type ObjectClassPrivate =
+export type ObjectClassPrivate =
 	ObjectClass<ObjectInstance<ObjectInstancePrivate>>
 	& ObjectMethods<ObjectInstancePrivate>
 	& ObjectMethodsPrivate<ObjectInstancePrivate>

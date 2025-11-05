@@ -17,7 +17,7 @@ export type ClassPrivateInterface<O> = {
 }
 
 export type ClassPublicInterface<O> = {
-	new: () -> O,
+	new: (...any) -> O,
 	getInstanceCount: () -> number,
 }
 
