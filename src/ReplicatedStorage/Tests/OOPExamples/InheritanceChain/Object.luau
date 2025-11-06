@@ -3,13 +3,12 @@
 	@author: William J. Horn
 	@written: 10/20/2025
 
-	Signal class
+	Object class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Shared = ReplicatedStorage.Shared
-local TableType = require(Shared.Types.Table)
-local Object = require(script.Parent.Object)
 local Class = require(ReplicatedStorage.Shared.Interfaces.Class)
+
+local Super = nil
 
 -- Non-static types
 type InstanceFieldsPublic = Class.BaseInstanceFieldsPublic & {
@@ -18,11 +17,12 @@ type InstanceFieldsPublic = Class.BaseInstanceFieldsPublic & {
 
 type InstanceFieldsPrivate = Class.BaseInstanceFieldsPrivate & {
 	-- private instance fields here
-	_super: Object.ClassInternal,
+	-- _super: Super.ClassInternal, -- inheritance
 }
 
 type InstanceMethodsPublic = Class.BaseInstanceMethodsPublic & {
-	-- public instance methods here
+	toString: (self: any) -> string,
+	objectMethod: (self: any) -> number
 }
 
 type InstanceMethodsPrivate = Class.BaseInstanceMethodsPrivate & {
@@ -31,8 +31,7 @@ type InstanceMethodsPrivate = Class.BaseInstanceMethodsPrivate & {
 
 export type InstanceFields = InstanceFieldsPrivate & InstanceFieldsPublic
 export type InstanceMethods = InstanceMethodsPrivate & InstanceMethodsPublic
-export type InstancePublic = InstanceFieldsPublic & InstanceMethodsPublic & Object.InstancePublic -- inherit
-
+export type InstancePublic = InstanceMethodsPublic & InstanceFieldsPublic -- & Super.InstancePublic
 export type InstanceInternal = InstancePublic & InstanceFieldsPrivate & InstanceMethodsPrivate
 
 -- Static types
@@ -53,57 +52,74 @@ export type ClassMethodsPrivate<O> = Class.BaseClassMethodsPrivate<O> & {
 }
 
 export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O>
+
 export type ClassInternal =
 	ClassPublic<InstancePublic>
-	& InstanceMethods
-	& ClassFieldsPrivate
 	& ClassMethodsPrivate<InstancePublic>
+	& ClassFieldsPrivate
+	& InstanceMethods
 
-local Signal = {} :: ClassInternal
+local Object = {} :: ClassInternal
 
 -- Private static fields
-Signal.__index = setmetatable(Signal, Object)
-Signal._instancesCreated = 0
+Object.__index = setmetatable(Object, Super)
+Object._instancesCreated = 0
+--
 
 -- Public static fields
+--
 
--- Constructor
-function Signal.new()
+-- Constructors
+function Object.new()
 	-- Init public & private fields
 	local _o: InstanceFields = {
-		_className = "",
 		_serialId = 0,
-		_super = {} :: Object.ClassInternal,
+		_className = "",
+		--_super = Super :: Super.ClassInternal
 	}
 
-	local o = setmetatable((Object.new() :: any) :: InstanceInternal, Signal)
+	-- If inheriting:
+	-- local o = setmetatable((_o._super.new() :: any) :: InstanceInternal, Object)
+	local o = setmetatable(_o :: InstanceInternal, Object)
 
 	-- Assign private fields
-	o._className = "Signal"
-	o._super = Object :: Object.ClassInternal
+	o._serialId = Object.getInstanceCount()
+	o._className = "Object"
 	--
 
 	-- Assign public fields
 	--
 
-	Signal._incrementInstanceCount()
+	Object._incrementInstanceCount()
 
 	-- Return new instance
 	return o
 end
+--
 
 -- Public static methods
-function Signal.getInstanceCount()
-	return Signal._instancesCreated
+function Object.getInstanceCount()
+	return Object._instancesCreated
 end
+--
 
 -- Private static methods
-function Signal._incrementInstanceCount()
-	Signal._instancesCreated += 1
+function Object._incrementInstanceCount()
+	Object._instancesCreated += 1
 end
+--
 
 -- Private instance methods
+--
 
 -- Public instance methods
+function Object.toString(self: InstanceInternal)
+	return self._className .. " - OBJECT"
+end
 
-return Signal :: ClassPublic<InstancePublic>
+function Object.objectMethod(self: InstanceInternal)
+	return 100
+end
+--
+
+return Object :: ClassPublic<InstancePublic>

@@ -17,23 +17,19 @@ type InstanceFieldsPrivate = Class.BaseInstanceFieldsPrivate & {
 	-- private instance fields here
 }
 
-type InstanceMethodsPublic<I> = Class.BaseInstanceMethodsPublic<I> & {
-	toString: (self: I) -> string,
-	objectMethod: (self: I) -> number
+type InstanceMethodsPublic = Class.BaseInstanceMethodsPublic & {
+	toString: (self: any) -> string,
+	objectMethod: (self: any) -> number
 }
 
-type InstanceMethodsPrivate<I> = Class.BaseInstanceMethodsPrivate<I> & {
+type InstanceMethodsPrivate = Class.BaseInstanceMethodsPrivate & {
 	-- private instance methods
 }
 
 export type InstanceFields = InstanceFieldsPrivate & InstanceFieldsPublic
-export type InstanceMethods<I> = InstanceMethodsPrivate<I> & InstanceMethodsPublic<I>
-export type InstancePublic<I> = InstanceMethodsPublic<I> & InstanceFieldsPublic
-
-export type InstanceInternal = 
-	InstancePublic<InstanceInternal> 
-	& InstanceFieldsPrivate 
-	& InstanceMethodsPrivate<InstanceInternal> 
+export type InstanceMethods = InstanceMethodsPrivate & InstanceMethodsPublic
+export type InstancePublic = InstanceMethodsPublic & InstanceFieldsPublic
+export type InstanceInternal = InstancePublic & InstanceFieldsPrivate & InstanceMethodsPrivate
 
 -- Static types
 export type ClassFieldsPublic = Class.BaseClassFieldsPublic & {
@@ -55,11 +51,11 @@ export type ClassMethodsPrivate<O> = Class.BaseClassMethodsPrivate<O> & {
 export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O>
 
 export type ClassInternal =
-	ClassPublic<InstancePublic<InstanceInternal>>
-	& ClassMethodsPrivate<InstanceInternal>
+	ClassPublic<InstancePublic>
+	& ClassMethodsPrivate<InstancePublic>
 	& ClassFieldsPrivate
-	& InstanceMethods<InstanceInternal>
-	
+	& InstanceMethods
+
 local Object = {} :: ClassInternal
 
 -- Private static fields
@@ -73,7 +69,7 @@ function Object.new()
 	-- Init public & private fields
 	local _o: InstanceFields = {
 		_serialId = 0,
-		_className = ""
+		_className = "",
 	}
 
 	local o = setmetatable(_o :: InstanceInternal, Object)
@@ -108,8 +104,8 @@ end
 -- end
 
 -- Public instance methods
-function Object:toString()
+function Object.toString(self: InstanceInternal)
 	return self._className .. " - OBJECT"
 end
 
-return Object :: ClassPublic<InstancePublic<InstanceInternal>>
+return Object :: ClassPublic<InstancePublic>

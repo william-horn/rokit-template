@@ -3,13 +3,12 @@
 	@author: William J. Horn
 	@written: 10/20/2025
 
-	Signal class
+	Grandparent class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Shared = ReplicatedStorage.Shared
-local TableType = require(Shared.Types.Table)
-local Object = require(script.Parent.Object)
 local Class = require(ReplicatedStorage.Shared.Interfaces.Class)
+
+local Super = require(script.Parent.Object) -- inheriting from
 
 -- Non-static types
 type InstanceFieldsPublic = Class.BaseInstanceFieldsPublic & {
@@ -18,11 +17,12 @@ type InstanceFieldsPublic = Class.BaseInstanceFieldsPublic & {
 
 type InstanceFieldsPrivate = Class.BaseInstanceFieldsPrivate & {
 	-- private instance fields here
-	_super: Object.ClassInternal,
+	_super: Super.ClassInternal, -- inheritance
 }
 
 type InstanceMethodsPublic = Class.BaseInstanceMethodsPublic & {
-	-- public instance methods here
+	objectMethod: (self: any) -> boolean, -- override (polymorphism)
+	grandparentMethod: (self: any) -> number
 }
 
 type InstanceMethodsPrivate = Class.BaseInstanceMethodsPrivate & {
@@ -31,8 +31,7 @@ type InstanceMethodsPrivate = Class.BaseInstanceMethodsPrivate & {
 
 export type InstanceFields = InstanceFieldsPrivate & InstanceFieldsPublic
 export type InstanceMethods = InstanceMethodsPrivate & InstanceMethodsPublic
-export type InstancePublic = InstanceFieldsPublic & InstanceMethodsPublic & Object.InstancePublic -- inherit
-
+export type InstancePublic = InstanceMethodsPublic & InstanceFieldsPublic & Super.InstancePublic -- inheritance
 export type InstanceInternal = InstancePublic & InstanceFieldsPrivate & InstanceMethodsPrivate
 
 -- Static types
@@ -53,57 +52,69 @@ export type ClassMethodsPrivate<O> = Class.BaseClassMethodsPrivate<O> & {
 }
 
 export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O>
+
 export type ClassInternal =
 	ClassPublic<InstancePublic>
-	& InstanceMethods
-	& ClassFieldsPrivate
 	& ClassMethodsPrivate<InstancePublic>
+	& ClassFieldsPrivate
+	& InstanceMethods
 
-local Signal = {} :: ClassInternal
+local Grandparent = {} :: ClassInternal
 
 -- Private static fields
-Signal.__index = setmetatable(Signal, Object)
-Signal._instancesCreated = 0
+Grandparent.__index = setmetatable(Grandparent, Super) -- inheritance
+Grandparent._instancesCreated = 0
+--
 
 -- Public static fields
+--
 
--- Constructor
-function Signal.new()
+-- Constructors
+function Grandparent.new()
 	-- Init public & private fields
 	local _o: InstanceFields = {
-		_className = "",
-		_serialId = 0,
-		_super = {} :: Object.ClassInternal,
+		_serialId = Grandparent.getInstanceCount(),
+		_className = "Grandparent",
+		_super = Super :: Super.ClassInternal, -- inheritance
 	}
 
-	local o = setmetatable((Object.new() :: any) :: InstanceInternal, Signal)
+	local o = setmetatable((_o._super.new() :: any) :: InstanceInternal, Grandparent)
 
 	-- Assign private fields
-	o._className = "Signal"
-	o._super = Object :: Object.ClassInternal
+	o._serialId = _o._serialId
+	o._className = _o._className
+	o._super = _o._super
 	--
 
 	-- Assign public fields
 	--
 
-	Signal._incrementInstanceCount()
+	Grandparent._incrementInstanceCount()
 
 	-- Return new instance
 	return o
 end
+--
 
 -- Public static methods
-function Signal.getInstanceCount()
-	return Signal._instancesCreated
+function Grandparent.getInstanceCount()
+	return Grandparent._instancesCreated
 end
+--
 
 -- Private static methods
-function Signal._incrementInstanceCount()
-	Signal._instancesCreated += 1
+function Grandparent._incrementInstanceCount()
+	Grandparent._instancesCreated += 1
 end
+--
 
 -- Private instance methods
+--
 
 -- Public instance methods
+function Grandparent.objectMethod(self: InstanceInternal)
+	return self._super.objectMethod(self) == 100
+end
+--
 
-return Signal :: ClassPublic<InstancePublic>
+return Grandparent :: ClassPublic<InstancePublic>

@@ -1,17 +1,19 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Object = require(ReplicatedStorage.Shared.Packages.Object)
-local Signal = require(ReplicatedStorage.Shared.Packages.Signal)
+local InheritanceChain = require(ReplicatedStorage.Tests.OOPExamples.InheritanceChain)
 local Server = {}
 
 --[[
 Run all server start up processes
 ]]
 function Server:run()
-	local o = Object.new()
-	local s = Signal.new()
+	InheritanceChain:run()
 
-	local n: number = s:toString()
+	-- local p = Signal.new({
+	-- 	dispatchLimit = 5,
+	-- })
+
+	-- p:connect(f, { timeout = 5 })
 end
 
 return Server
