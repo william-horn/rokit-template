@@ -1,15 +1,16 @@
 --!strict
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Shared = ReplicatedStorage.Shared
-local TableType = require(Shared.Types.Table)
-local Object = require(script.Parent.Object)
-local Class = require(ReplicatedStorage.Shared.Interfaces.Class)
 --[[
 	@author: William J. Horn
 	@written: 10/20/2025
 
 	Signal class
 ]]
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Shared = ReplicatedStorage.Shared
+local TableType = require(Shared.Types.Table)
+local Object = require(script.Parent.Object)
+local Class = require(ReplicatedStorage.Shared.Interfaces.Class)
+
 -- Non-static types
 type InstanceFieldsPublic = Class.BaseInstanceFieldsPublic & {
 	-- public instance fields here
@@ -22,7 +23,6 @@ type InstanceFieldsPrivate = Class.BaseInstanceFieldsPrivate & {
 
 type InstanceMethodsPublic = Class.BaseInstanceMethodsPublic & {
 	-- public instance methods here
-	toString: (self: any) -> string,
 }
 
 type InstanceMethodsPrivate = Class.BaseInstanceMethodsPrivate & {
@@ -105,8 +105,5 @@ end
 -- Private instance methods
 
 -- Public instance methods
-function Signal.toString(self: InstanceInternal)
-	return self._super.toString(self) .. " - ADDED"
-end
 
 return Signal :: ClassPublic<InstancePublic>

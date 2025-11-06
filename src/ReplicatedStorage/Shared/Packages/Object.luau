@@ -19,7 +19,6 @@ type InstanceFieldsPrivate = Class.BaseInstanceFieldsPrivate & {
 
 type InstanceMethodsPublic = Class.BaseInstanceMethodsPublic & {
 	toString: (self: any) -> string,
-	objectMethod: (self: any) -> number,
 }
 
 type InstanceMethodsPrivate = Class.BaseInstanceMethodsPrivate & {
