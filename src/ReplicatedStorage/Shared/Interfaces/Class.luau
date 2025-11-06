@@ -9,13 +9,13 @@ export type BaseInstanceFieldsPrivate = {
 	_className: string,
 }
 
-export type BaseInstanceMethodsPublic<I> = {}
+export type BaseInstanceMethodsPublic = {}
 
-export type BaseInstanceMethodsPrivate<I> = {}
+export type BaseInstanceMethodsPrivate = {}
 
 export type BaseInstanceFields = BaseInstanceFieldsPublic & BaseInstanceFieldsPrivate
-export type BaseInstanceMethods<I> = BaseInstanceMethodsPublic<I> & BaseInstanceMethodsPrivate<I>
-export type BaseInstance<I> = BaseInstanceFields & BaseInstanceMethods<I>
+export type BaseInstanceMethods = BaseInstanceMethodsPublic & BaseInstanceMethodsPrivate
+export type BaseInstance<I> = BaseInstanceFields & BaseInstanceMethods
 
 export type BaseClassFieldsPublic = {}
 

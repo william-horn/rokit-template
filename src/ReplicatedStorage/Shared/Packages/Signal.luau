@@ -17,28 +17,23 @@ type InstanceFieldsPublic = Class.BaseInstanceFieldsPublic & {
 
 type InstanceFieldsPrivate = Class.BaseInstanceFieldsPrivate & {
 	-- private instance fields here
-	_super: Object.ClassInternal
+	_super: Object.ClassInternal,
 }
 
-type InstanceMethodsPublic<I> = Class.BaseInstanceMethodsPublic<I> & {
-	toString: (self: I) -> string,
+type InstanceMethodsPublic = Class.BaseInstanceMethodsPublic & {
+	-- public instance methods here
+	toString: (self: any) -> string,
 }
 
-type InstanceMethodsPrivate<I> = Class.BaseInstanceMethodsPrivate<I> & {
+type InstanceMethodsPrivate = Class.BaseInstanceMethodsPrivate & {
 	-- private instance methods
 }
 
 export type InstanceFields = InstanceFieldsPrivate & InstanceFieldsPublic
-export type InstanceMethods<I> = InstanceMethodsPrivate<I> & InstanceMethodsPublic<I>
-export type InstancePublic<I> = 
-	InstanceMethodsPublic<I> 
-	& InstanceFieldsPublic 
-	& Object.InstancePublic<I> -- inherit
+export type InstanceMethods = InstanceMethodsPrivate & InstanceMethodsPublic
+export type InstancePublic = InstanceFieldsPublic & InstanceMethodsPublic & Object.InstancePublic -- inherit
 
-export type InstanceInternal = 
-	InstancePublic<InstanceInternal> 
-	& InstanceFieldsPrivate 
-	& InstanceMethodsPrivate<InstanceInternal> 
+export type InstanceInternal = InstancePublic & InstanceFieldsPrivate & InstanceMethodsPrivate
 
 -- Static types
 export type ClassFieldsPublic = Class.BaseClassFieldsPublic & {
@@ -59,10 +54,10 @@ export type ClassMethodsPrivate<O> = Class.BaseClassMethodsPrivate<O> & {
 
 export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O>
 export type ClassInternal =
-	ClassPublic<InstancePublic<InstanceInternal>>
-	& InstanceMethods<InstanceInternal>
+	ClassPublic<InstancePublic>
+	& InstanceMethods
 	& ClassFieldsPrivate
-	& ClassMethodsPrivate<InstancePublic<InstanceInternal>>
+	& ClassMethodsPrivate<InstancePublic>
 
 local Signal = {} :: ClassInternal
 
@@ -78,9 +73,9 @@ function Signal.new()
 	local _o: InstanceFields = {
 		_className = "",
 		_serialId = 0,
-		_super = {} :: Object.ClassInternal
+		_super = {} :: Object.ClassInternal,
 	}
-	
+
 	local o = setmetatable((Object.new() :: any) :: InstanceInternal, Signal)
 
 	-- Assign private fields
@@ -110,8 +105,8 @@ end
 -- Private instance methods
 
 -- Public instance methods
-function Signal:toString()
-	return self._super.toString(self) .. " - SIGNAL"
+function Signal.toString(self: InstanceInternal)
+	return self._super.toString(self) .. " - ADDED"
 end
 
-return Signal :: ClassPublic<InstancePublic<InstanceInternal>>
+return Signal :: ClassPublic<InstancePublic>
