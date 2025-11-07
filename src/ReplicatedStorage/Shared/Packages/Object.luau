@@ -8,6 +8,8 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Class = require(ReplicatedStorage.Shared.Interfaces.Class)
 
+local Super = nil
+
 -- Non-static types
 type InstanceFieldsPublic = Class.BaseInstanceFieldsPublic & {
 	-- public instance fields here
@@ -15,11 +17,11 @@ type InstanceFieldsPublic = Class.BaseInstanceFieldsPublic & {
 
 type InstanceFieldsPrivate = Class.BaseInstanceFieldsPrivate & {
 	-- private instance fields here
+	-- _super: Super.ClassInternal, -- inheritance
 }
 
 type InstanceMethodsPublic = Class.BaseInstanceMethodsPublic & {
 	toString: (self: any) -> string,
-	objectMethod: (self: any) -> number
 }
 
 type InstanceMethodsPrivate = Class.BaseInstanceMethodsPrivate & {
@@ -28,7 +30,7 @@ type InstanceMethodsPrivate = Class.BaseInstanceMethodsPrivate & {
 
 export type InstanceFields = InstanceFieldsPrivate & InstanceFieldsPublic
 export type InstanceMethods = InstanceMethodsPrivate & InstanceMethodsPublic
-export type InstancePublic = InstanceMethodsPublic & InstanceFieldsPublic
+export type InstancePublic = InstanceMethodsPublic & InstanceFieldsPublic -- & Super.InstancePublic
 export type InstanceInternal = InstancePublic & InstanceFieldsPrivate & InstanceMethodsPrivate
 
 -- Static types
@@ -59,19 +61,24 @@ export type ClassInternal =
 local Object = {} :: ClassInternal
 
 -- Private static fields
-Object.__index = Object
+Object.__index = setmetatable(Object, Super)
 Object._instancesCreated = 0
+--
 
 -- Public static fields
+--
 
--- Constructor
+-- Constructors
 function Object.new()
 	-- Init public & private fields
 	local _o: InstanceFields = {
 		_serialId = 0,
 		_className = "",
+		--_super = Super :: Super.ClassInternal
 	}
 
+	-- If inheriting:
+	-- local o = setmetatable((_o._super.new() :: any) :: InstanceInternal, Object)
 	local o = setmetatable(_o :: InstanceInternal, Object)
 
 	-- Assign private fields
@@ -87,25 +94,27 @@ function Object.new()
 	-- Return new instance
 	return o
 end
+--
 
 -- Public static methods
 function Object.getInstanceCount()
 	return Object._instancesCreated
 end
+--
 
 -- Private static methods
 function Object._incrementInstanceCount()
 	Object._instancesCreated += 1
 end
+--
 
 -- Private instance methods
--- function Object:_private()
--- 	return "some data"
--- end
+--
 
 -- Public instance methods
 function Object.toString(self: InstanceInternal)
 	return self._className .. " - OBJECT"
 end
+--
 
 return Object :: ClassPublic<InstancePublic>

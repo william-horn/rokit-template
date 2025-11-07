@@ -3,9 +3,9 @@ local Grandparent = require(script.Grandparent)
 local Object = require(script.Object)
 local Parent = require(script:FindFirstChild("Parent"))
 
-local InheritanceChain = {}
+local InheritanceChainNew = {}
 
-function InheritanceChain:run()
+function InheritanceChainNew:run()
 	local o1 = Object.new()
 	local g1 = Grandparent.new()
 	local p1 = Parent.new()
@@ -17,8 +17,6 @@ function InheritanceChain:run()
 	print(Object.getInstanceCount())
 	print(Grandparent.getInstanceCount())
 	print(Parent.getInstanceCount())
-
-	print(g1:objectMethod())
 end
 
-return InheritanceChain
+return InheritanceChainNew

@@ -22,7 +22,7 @@ type InstanceFieldsPrivate = Class.BaseInstanceFieldsPrivate & {
 
 type InstanceMethodsPublic = Class.BaseInstanceMethodsPublic & {
 	toString: (self: any) -> string,
-	objectMethod: (self: any) -> number
+	objectMethod: (self: any) -> number,
 }
 
 type InstanceMethodsPrivate = Class.BaseInstanceMethodsPrivate & {
@@ -72,19 +72,19 @@ Object._instancesCreated = 0
 -- Constructors
 function Object.new()
 	-- Init public & private fields
-	local _o: InstanceFields = {
+	local _self: InstanceFields = {
 		_serialId = 0,
 		_className = "",
 		--_super = Super :: Super.ClassInternal
 	}
 
 	-- If inheriting:
-	-- local o = setmetatable((_o._super.new() :: any) :: InstanceInternal, Object)
-	local o = setmetatable(_o :: InstanceInternal, Object)
+	-- local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, Object)
+	local self = setmetatable(_self :: InstanceInternal, Object)
 
 	-- Assign private fields
-	o._serialId = Object.getInstanceCount()
-	o._className = "Object"
+	self._serialId = Object.getInstanceCount()
+	self._className = "Object"
 	--
 
 	-- Assign public fields
@@ -93,7 +93,7 @@ function Object.new()
 	Object._incrementInstanceCount()
 
 	-- Return new instance
-	return o
+	return self
 end
 --
 
@@ -114,7 +114,7 @@ end
 
 -- Public instance methods
 function Object.toString(self: InstanceInternal)
-	return self._className .. " - OBJECT"
+	return self._className
 end
 
 function Object.objectMethod(self: InstanceInternal)

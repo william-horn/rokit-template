@@ -3,12 +3,12 @@
 	@author: William J. Horn
 	@written: 10/20/2025
 
-	Parent class
+	Grandparent class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Class = require(ReplicatedStorage.Shared.Interfaces.Class)
 
-local Super = require(script.Parent.Grandparent) -- inheriting from
+local Super = require(script.Parent.Object) -- inheriting from
 
 -- Non-static types
 type InstanceFieldsPublic = Class.BaseInstanceFieldsPublic & {
@@ -21,6 +21,8 @@ type InstanceFieldsPrivate = Class.BaseInstanceFieldsPrivate & {
 }
 
 type InstanceMethodsPublic = Class.BaseInstanceMethodsPublic & {
+	objectMethod: (self: any) -> boolean, -- override (polymorphism)
+	grandparentMethod: (self: any) -> number,
 }
 
 type InstanceMethodsPrivate = Class.BaseInstanceMethodsPrivate & {
@@ -57,52 +59,52 @@ export type ClassInternal =
 	& ClassFieldsPrivate
 	& InstanceMethods
 
-local Parent = {} :: ClassInternal
+local Grandparent = {} :: ClassInternal
 
 -- Private static fields
-Parent.__index = setmetatable(Parent, Super) -- inheritance
-Parent._instancesCreated = 0
+Grandparent.__index = setmetatable(Grandparent, Super) -- inheritance
+Grandparent._instancesCreated = 0
 --
 
 -- Public static fields
 --
 
 -- Constructors
-function Parent.new()
+function Grandparent.new()
 	-- Init public & private fields
-	local _o: InstanceFields = {
-		_serialId = Parent.getInstanceCount(),
-		_className = "Parent",
+	local _self: InstanceFields = {
+		_serialId = Grandparent.getInstanceCount(),
+		_className = "Grandparent",
 		_super = Super :: Super.ClassInternal, -- inheritance
 	}
 
-	local o = setmetatable((_o._super.new() :: any) :: InstanceInternal, Parent)
+	local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, Grandparent)
 
 	-- Assign private fields
-	o._serialId = _o._serialId
-	o._className = _o._className
-	o._super = _o._super
+	self._serialId = _self._serialId
+	self._className = _self._className
+	self._super = _self._super
 	--
 
 	-- Assign public fields
 	--
 
-	Parent._incrementInstanceCount()
+	Grandparent._incrementInstanceCount()
 
 	-- Return new instance
-	return o
+	return self
 end
 --
 
 -- Public static methods
-function Parent.getInstanceCount()
-	return Parent._instancesCreated
+function Grandparent.getInstanceCount()
+	return Grandparent._instancesCreated
 end
 --
 
 -- Private static methods
-function Parent._incrementInstanceCount()
-	Parent._instancesCreated += 1
+function Grandparent._incrementInstanceCount()
+	Grandparent._instancesCreated += 1
 end
 --
 
@@ -110,6 +112,9 @@ end
 --
 
 -- Public instance methods
+function Grandparent.objectMethod(self: InstanceInternal)
+	return self._super.objectMethod(self) == 100
+end
 --
 
-return Parent :: ClassPublic<InstancePublic>
+return Grandparent :: ClassPublic<InstancePublic>
