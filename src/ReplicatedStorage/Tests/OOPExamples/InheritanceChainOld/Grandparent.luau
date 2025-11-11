@@ -1,5 +1,4 @@
 --!strict
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 --[[
 	@author: William J. Horn
 	@written: 10/20/2025

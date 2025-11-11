@@ -1,7 +1,9 @@
 --!strict
-local Grandparent = require(script.Grandparent)
-local Object = require(script.Object)
-local Parent = require(script:FindFirstChild("Parent"))
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Classes = ReplicatedStorage.Shared.Classes
+local Object = require(Classes.Object)
+local Grandparent = require(Classes.Grandparent)
+local Parent = require(Classes:FindFirstChild("Parent"))
 
 local InheritanceChainNew = {}
 
