@@ -1,7 +1,7 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Table = require(ReplicatedStorage.Shared.Types.Table)
--- local SuperTypes = require(ReplicatedStorage.Shared.Classes.____.Types)
+local SuperTypes = require(script.Parent.Parent.Object.Types)
 
 -- Non-static types
 export type InstanceFieldsPublic = {
@@ -10,13 +10,14 @@ export type InstanceFieldsPublic = {
 
 export type InstanceFieldsPrivate = {
 	-- private instance fields here
+	_super: SuperTypes.ClassInternal, -- inheritance
 	_serialId: number,
 	_className: string,
-	-- _super: SuperType.ClassInternal, -- inheritance
 }
 
 export type InstanceMethodsPublic = {
-	toString: (self: any) -> string,
+	objectMethod: (self: any) -> boolean, -- override (polymorphism)
+	grandparentMethod: (self: any) -> number,
 }
 
 export type InstanceMethodsPrivate = {
@@ -25,7 +26,7 @@ export type InstanceMethodsPrivate = {
 
 export type InstanceFields = InstanceFieldsPrivate & InstanceFieldsPublic
 export type InstanceMethods = InstanceMethodsPrivate & InstanceMethodsPublic
-export type InstancePublic = InstanceMethodsPublic & InstanceFieldsPublic -- & SuperType.InstancePublic
+export type InstancePublic = InstanceMethodsPublic & InstanceFieldsPublic & SuperTypes.InstancePublic -- inheritance
 export type InstanceInternal = InstancePublic & InstanceFieldsPrivate & InstanceMethodsPrivate
 
 -- Static types

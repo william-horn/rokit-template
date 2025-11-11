@@ -1,7 +1,7 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Table = require(ReplicatedStorage.Shared.Types.Table)
-local SuperTypes = require(ReplicatedStorage.Shared.Classes.Grandparent.Types)
+local SuperTypes = require(script.Parent.Parent.Grandparent.Types)
 
 -- Non-static types
 type InstanceFieldsPublic = {

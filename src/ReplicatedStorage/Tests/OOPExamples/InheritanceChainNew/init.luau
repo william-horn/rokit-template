@@ -1,9 +1,7 @@
 --!strict
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Classes = ReplicatedStorage.Shared.Classes
-local Object = require(Classes.Object)
-local Grandparent = require(Classes.Grandparent)
-local Parent = require(Classes:FindFirstChild("Parent"))
+local Object = require(script.Object)
+local Grandparent = require(script.Grandparent)
+local Parent = require(script:FindFirstChild("Parent"))
 
 local InheritanceChainNew = {}
 
@@ -16,9 +14,9 @@ function InheritanceChainNew:run()
 	print(g1:toString())
 	print(p1:toString())
 
-	print(Object.getInstanceCount())
-	print(Grandparent.getInstanceCount())
-	print(Parent.getInstanceCount())
+	print("Object", Object.getInstanceCount())
+	print("Grandparent", Grandparent.getInstanceCount())
+	print("Parent", Parent.getInstanceCount())
 end
 
 return InheritanceChainNew

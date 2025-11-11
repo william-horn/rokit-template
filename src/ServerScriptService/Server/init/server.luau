@@ -1,6 +1,7 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local InheritanceChainNew = require(ReplicatedStorage.Tests.OOPExamples.InheritanceChainNew)
+
 local Server = {}
 
 --[[

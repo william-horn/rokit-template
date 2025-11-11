@@ -65,6 +65,14 @@ end
 function Object.toString(self: Types.InstanceInternal)
 	return self._className
 end
+
+function Object.objectMethod(self: Types.InstanceInternal)
+	return 100
+end
+
+function Object.getSerialId(self: Types.InstanceInternal)
+	return self._serialId
+end
 --
 
 return Object :: Types.ClassPublic<Types.InstancePublic>

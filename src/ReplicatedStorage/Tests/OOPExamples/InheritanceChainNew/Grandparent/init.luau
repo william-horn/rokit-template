@@ -5,9 +5,7 @@
 
 	Grandparent class
 ]]
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Shared = ReplicatedStorage.Shared
-local Classes = Shared.Classes
+local Classes = script.Parent
 
 local Types = require(script.Types)
 local Super = require(Classes.Object) -- inheriting from
