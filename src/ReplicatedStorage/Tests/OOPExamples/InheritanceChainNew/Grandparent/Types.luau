@@ -16,6 +16,7 @@ export type InstanceFieldsPrivate = {
 }
 
 export type InstanceMethodsPublic = {
+	-- public instance methods here
 	objectMethod: (self: any) -> boolean, -- override (polymorphism)
 	grandparentMethod: (self: any) -> number,
 }
