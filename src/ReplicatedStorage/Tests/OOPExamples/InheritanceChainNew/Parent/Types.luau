@@ -37,7 +37,7 @@ export type ClassFieldsPublic = {
 export type ClassFieldsPrivate = {
 	-- private static fields here
 	__index: Table.Map<string, any>,
-	_instancesCreated: number,
+	_instanceCount: number,
 }
 
 export type ClassMethodsPublic<O> = {

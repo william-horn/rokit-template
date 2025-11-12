@@ -12,7 +12,7 @@ local Object = {} :: Types.ClassInternal
 
 -- Private static fields
 Object.__index = setmetatable(Object, Super)
-Object._instancesCreated = 0
+Object._instanceCount = 0
 --
 
 -- Public static fields
@@ -48,13 +48,13 @@ end
 
 -- Public static methods
 function Object.getInstanceCount()
-	return Object._instancesCreated
+	return Object._instanceCount
 end
 --
 
 -- Private static methods
 function Object._incrementInstanceCount()
-	Object._instancesCreated += 1
+	Object._instanceCount += 1
 end
 --
 
@@ -64,6 +64,10 @@ end
 -- Public instance methods
 function Object.toString(self: Types.InstanceInternal)
 	return self._className
+end
+
+function Object.getSerialId(self: Types.InstanceInternal)
+	return self._serialId
 end
 --
 

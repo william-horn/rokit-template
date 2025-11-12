@@ -15,7 +15,7 @@ local Grandparent = {} :: Types.ClassInternal
 
 -- Private static fields
 Grandparent.__index = setmetatable(Grandparent, Super) -- inheritance
-Grandparent._instancesCreated = 0
+Grandparent._instanceCount = 0
 --
 
 -- Public static fields
@@ -50,13 +50,13 @@ end
 
 -- Public static methods
 function Grandparent.getInstanceCount()
-	return Grandparent._instancesCreated
+	return Grandparent._instanceCount
 end
 --
 
 -- Private static methods
 function Grandparent._incrementInstanceCount()
-	Grandparent._instancesCreated += 1
+	Grandparent._instanceCount += 1
 end
 --
 

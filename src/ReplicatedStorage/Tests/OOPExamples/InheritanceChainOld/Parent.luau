@@ -20,7 +20,7 @@ export type Instance = typeof(setmetatable(
 
 -- Private static fields
 Parent.__index = setmetatable(Parent, Super) -- inheritance
-Parent._instancesCreated = 0
+Parent._instanceCount = 0
 --
 
 -- Public static fields
@@ -49,13 +49,13 @@ end
 
 -- Public static methods
 function Parent.getInstanceCount()
-	return Parent._instancesCreated
+	return Parent._instanceCount
 end
 --
 
 -- Private static methods
 function Parent._incrementInstanceCount()
-	Parent._instancesCreated += 1
+	Parent._instanceCount += 1
 end
 --
 

@@ -17,7 +17,7 @@ export type Instance = typeof(setmetatable(
 
 -- Private static fields
 Object.__index = Object
-Object._instancesCreated = 0
+Object._instanceCount = 0
 --
 
 -- Public static fields
@@ -44,13 +44,13 @@ end
 
 -- Public static methods
 function Object.getInstanceCount()
-	return Object._instancesCreated
+	return Object._instanceCount
 end
 --
 
 -- Private static methods
 function Object._incrementInstanceCount()
-	Object._instancesCreated += 1
+	Object._instanceCount += 1
 end
 --
 

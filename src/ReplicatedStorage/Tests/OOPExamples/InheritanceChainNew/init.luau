@@ -17,6 +17,8 @@ function InheritanceChainNew:run()
 	print("Object", Object.getInstanceCount())
 	print("Grandparent", Grandparent.getInstanceCount())
 	print("Parent", Parent.getInstanceCount())
+
+	print(p1:getSerialId())
 end
 
 return InheritanceChainNew
