@@ -1,8 +1,6 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Object = require(ReplicatedStorage.Shared.Classes.Object)
-local HaoniTower = require(ReplicatedStorage.Tests.Misc.HaoniTower)
-local InheritanceChainNew = require(ReplicatedStorage.Tests.OOPExamples.InheritanceChainNew)
+local InheritanceChainV2 = require(ReplicatedStorage.Tests.OOPExamples.InheritanceChainV2)
 
 local Server = {}
 
@@ -10,7 +8,7 @@ local Server = {}
 Run all server start up processes
 ]]
 function Server:run()
-	HaoniTower:run()
+	InheritanceChainV2:run()
 end
 
 return Server

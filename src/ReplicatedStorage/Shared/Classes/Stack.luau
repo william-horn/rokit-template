@@ -6,8 +6,10 @@
 	Stack class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Object = require(ReplicatedStorage.Shared.Classes.Object)
+local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local Table = require(ReplicatedStorage.Shared.Types.Table)
-local Super = require(script.Parent.Object)
+local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
 
 -- Non-static types
 export type InstanceFieldsPublic = {
@@ -16,8 +18,6 @@ export type InstanceFieldsPublic = {
 
 export type InstanceFieldsPrivate = {
 	-- private instance fields here
-	_serialId: number,
-	_className: string,
 	_stack: Table.ArrayOf<any>,
 	_super: Super.ClassInternal, -- inheritance
 }
@@ -35,8 +35,9 @@ export type InstanceMethodsPrivate = {
 
 export type InstanceFields = InstanceFieldsPrivate & InstanceFieldsPublic
 export type InstanceMethods = InstanceMethodsPrivate & InstanceMethodsPublic
-export type InstancePublic = InstanceMethodsPublic & InstanceFieldsPublic & Super.InstancePublic
-export type InstanceInternal = InstancePublic & InstanceFieldsPrivate & InstanceMethodsPrivate
+export type InstancePublic = InstanceMethodsPublic & InstanceFieldsPublic & Super.InstancePublic -- inherit
+export type InstancePrivate = InstanceMethodsPrivate & InstanceFieldsPrivate & Super.InstancePrivate -- inherit
+export type InstanceInternal = InstancePublic & InstancePrivate
 
 -- Static types
 export type ClassFieldsPublic = {
@@ -45,62 +46,57 @@ export type ClassFieldsPublic = {
 
 export type ClassFieldsPrivate = {
 	-- private static fields here
-	__index: Table.Map<string, any>,
-	_instanceCount: number,
 }
 
 export type ClassMethodsPublic<O> = {
 	-- public static methods here
 	new: () -> O,
-	getInstanceCount: () -> number,
 }
 
 export type ClassMethodsPrivate<O> = {
 	-- private static methods here
-	_incrementInstanceCount: () -> (),
 }
 
-export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O>
+export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O> & newClass.ClassTemplatePublic
 
 export type ClassInternal =
 	ClassPublic<InstancePublic>
 	& ClassMethodsPrivate<InstancePublic>
 	& ClassFieldsPrivate
 	& InstanceMethods
+	& newClass.ClassTemplatePrivate
 
-local Stack = {} :: ClassInternal
+local Stack = newClass("Stack", Object) :: ClassInternal
 
 -- Private static fields
-Stack.__index = setmetatable(Stack, Super)
-Stack._instanceCount = 0
 --
 
 -- Public static fields
 --
 
 -- Constructors
-function Stack.new() -- `T & { any }` included to force array type through valid intersection
+function Stack.new()
 	-- Init public & private fields
 	local _self: InstanceFields = {
-		_serialId = 0,
-		_className = "",
 		_super = Super :: Super.ClassInternal,
 		_stack = {},
 	}
 
 	-- If inheriting:
-	-- local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, Stack)
-	local self = setmetatable(_self :: InstanceInternal, Stack)
+	local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, Stack)
+	-- local self = setmetatable(_self :: InstanceInternal, Stack)
+
+	Stack:_incrementInstanceCount()
 
 	-- Assign private fields
-	self._serialId = Stack.getInstanceCount()
+	self._serialId = Object:getInstanceCount()
 	self._className = "Stack"
+	self._stack = _self._stack
+	self._super = _self._super
 	--
 
 	-- Assign public fields
 	--
-
-	Stack._incrementInstanceCount()
 
 	-- Return new instance
 	return self
@@ -108,15 +104,9 @@ end
 --
 
 -- Public static methods
-function Stack.getInstanceCount()
-	return Stack._instanceCount
-end
 --
 
 -- Private static methods
-function Stack._incrementInstanceCount()
-	Stack._instanceCount += 1
-end
 --
 
 -- Private instance methods

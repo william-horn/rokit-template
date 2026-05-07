@@ -3,12 +3,12 @@
 	@author: William J. Horn
 	@written: 10/20/2025
 
-	Object class
+	Parent class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
--- local Table = require(ReplicatedStorage.Shared.Types.Table)
+local Object = require(ReplicatedStorage.Shared.Classes.Object)
+local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
--- local Super = nil
 
 -- Non-static types
 export type InstanceFieldsPublic = {
@@ -17,14 +17,11 @@ export type InstanceFieldsPublic = {
 
 export type InstanceFieldsPrivate = {
 	-- private instance fields here
-	_serialId: number,
-	_className: string,
-	-- _super: SuperType.ClassInternal, -- inheritance
+	_super: Super.ClassInternal, -- inheritance
 }
 
 export type InstanceMethodsPublic = {
-	toString: (self: any) -> string,
-	getId: (self: any) -> number,
+	--
 }
 
 export type InstanceMethodsPrivate = {
@@ -33,8 +30,8 @@ export type InstanceMethodsPrivate = {
 
 export type InstanceFields = InstanceFieldsPrivate & InstanceFieldsPublic
 export type InstanceMethods = InstanceMethodsPrivate & InstanceMethodsPublic
-export type InstancePublic = InstanceMethodsPublic & InstanceFieldsPublic
-export type InstancePrivate = InstanceMethodsPrivate & InstanceFieldsPrivate
+export type InstancePublic = InstanceMethodsPublic & InstanceFieldsPublic & Super.InstancePublic -- inherit
+export type InstancePrivate = InstanceMethodsPrivate & InstanceFieldsPrivate & Super.InstancePrivate -- inherit
 export type InstanceInternal = InstancePublic & InstancePrivate
 
 -- Static types
@@ -51,7 +48,6 @@ export type ClassMethodsPublic<O> = {
 	new: () -> O,
 }
 
--- We pass a generic type "O" in case a class method accepts any instance parameters
 export type ClassMethodsPrivate<O> = {
 	-- private static methods here
 }
@@ -65,33 +61,31 @@ export type ClassInternal =
 	& InstanceMethods
 	& newClass.ClassTemplatePrivate
 
-local Object = newClass("Object") :: ClassInternal
+local Parent = newClass("Parent", Super) :: ClassInternal
 
 -- Private static fields
--- Object._foo = "bar"
 --
 
 -- Public static fields
 --
 
 -- Constructors
-function Object.new()
+function Parent.new()
 	-- Init public & private fields
 	local _self: InstanceFields = {
-		_serialId = 0,
-		_className = "",
-		--_super = Super :: Super.ClassInternal
+		_super = Super :: Super.ClassInternal,
 	}
 
 	-- If inheriting:
-	-- local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, Object)
-	local self = setmetatable(_self :: InstanceInternal, Object)
+	local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, Parent)
+	-- local self = setmetatable(_self :: InstanceInternal, Parent)
 
-	Object:_incrementInstanceCount()
+	Parent:_incrementInstanceCount()
 
 	-- Assign private fields
 	self._serialId = Object:getInstanceCount()
-	self._className = "Object"
+	self._className = "Parent"
+	self._super = _self._super
 	--
 
 	-- Assign public fields
@@ -112,13 +106,13 @@ end
 --
 
 -- Public instance methods
-function Object.toString(self: InstanceInternal)
-	return self._className
-end
+-- function Parent.toString(self: InstanceInternal)
+-- 	return self._className
+-- end
 
-function Object.getId(self: InstanceInternal)
-	return self._serialId
-end
+-- function Parent.getSerialId(self: InstanceInternal)
+-- 	return self._serialId
+-- end
 --
 
-return Object :: ClassPublic<InstancePublic>
+return Parent :: ClassPublic<InstancePublic>
