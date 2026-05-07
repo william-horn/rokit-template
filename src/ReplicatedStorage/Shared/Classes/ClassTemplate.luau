@@ -11,6 +11,7 @@ export type ClassTemplatePrivate = {
 	_instanceCount: number,
 	_incrementInstanceCount: (self: any) -> (),
 	_className: string,
+	_super: Table.Map<string, any>?,
 	__index: Table.Map<string, any>,
 }
 
@@ -38,6 +39,7 @@ local function newClass(_className: string?, superClass: Table.Map<string, any>?
 	--
 
 	-- private fields
+	class._super = superClass
 	class._className = className
 	class._instanceCount = 0
 

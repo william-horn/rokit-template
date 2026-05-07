@@ -92,7 +92,6 @@ function Stack.new()
 	self._serialId = Object:getInstanceCount()
 	self._className = "Stack"
 	self._stack = _self._stack
-	self._super = _self._super
 	--
 
 	-- Assign public fields

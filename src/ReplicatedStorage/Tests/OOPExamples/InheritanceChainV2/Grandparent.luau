@@ -3,11 +3,11 @@
 	@author: William J. Horn
 	@written: 10/20/2025
 
-	Parent class
+	Grandparent class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Object = require(ReplicatedStorage.Shared.Classes.Object)
-local Super = require(script.Parent.Grandparent)
+local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
 
 -- Non-static types
@@ -18,11 +18,16 @@ export type InstanceFieldsPublic = {
 export type InstanceFieldsPrivate = {
 	-- private instance fields here
 	_super: Super.ClassInternal, -- inheritance
+	_age: number,
+	_name: string,
 }
 
 export type InstanceMethodsPublic = {
 	--
-	parentMethod: (self: any) -> string,
+	getAge: (self: any) -> number,
+	getName: (self: any) -> string,
+	toString: (self: any) -> string, -- @Override
+	grandparentMethod: (self: any) -> string,
 }
 
 export type InstanceMethodsPrivate = {
@@ -62,7 +67,7 @@ export type ClassInternal =
 	& InstanceMethods
 	& newClass.ClassTemplatePrivate
 
-local Parent = newClass("Parent", Super) :: ClassInternal
+local Grandparent = newClass("Grandparent", Super) :: ClassInternal
 
 -- Private static fields
 --
@@ -71,23 +76,25 @@ local Parent = newClass("Parent", Super) :: ClassInternal
 --
 
 -- Constructors
-function Parent.new()
+function Grandparent.new()
 	-- Init public & private fields
 	local _self: InstanceFields = {
 		_super = Super :: Super.ClassInternal,
+		_age = 80,
+		_name = "Larry",
 	}
 
 	-- If inheriting:
-	local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, Parent)
-	-- local self = setmetatable(_self :: InstanceInternal, Parent)
+	local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, Grandparent)
+	-- local self = setmetatable(_self :: InstanceInternal, Grandparent)
 
-	Parent:_incrementInstanceCount()
+	Grandparent:_incrementInstanceCount()
 
 	-- Assign private fields
 	self._serialId = Object:getInstanceCount()
-	self._className = Parent:getClassName()
-	self._age = 26
-	self._name = "William"
+	self._className = Grandparent:getClassName()
+	self._age = _self._age
+	self._name = _self._name
 	--
 
 	-- Assign public fields
@@ -108,9 +115,21 @@ end
 --
 
 -- Public instance methods
-function Parent.parentMethod(self: InstanceInternal)
-	return "Some parent thing"
+function Grandparent.getAge(self: InstanceInternal)
+	return self._age
+end
+
+function Grandparent.getName(self: InstanceInternal)
+	return self._name
+end
+
+function Grandparent.toString(self: InstanceInternal)
+	return self._name .. " is " .. self._age .. " years old"
+end
+
+function Grandparent.grandparentMethod(self: InstanceInternal)
+	return "Some grandparent thing"
 end
 --
 
-return Parent :: ClassPublic<InstancePublic>
+return Grandparent :: ClassPublic<InstancePublic>

@@ -25,6 +25,7 @@ export type InstanceFieldsPrivate = {
 export type InstanceMethodsPublic = {
 	toString: (self: any) -> string,
 	getId: (self: any) -> number,
+	getClassName: (self: any) -> string,
 }
 
 export type InstanceMethodsPrivate = {
@@ -91,7 +92,7 @@ function Object.new()
 
 	-- Assign private fields
 	self._serialId = Object:getInstanceCount()
-	self._className = "Object"
+	self._className = Object:getClassName()
 	--
 
 	-- Assign public fields
@@ -113,11 +114,15 @@ end
 
 -- Public instance methods
 function Object.toString(self: InstanceInternal)
-	return self._className
+	return self._className .. "#" .. self:getId()
 end
 
 function Object.getId(self: InstanceInternal)
 	return self._serialId
+end
+
+function Object.getClassName(self: InstanceInternal)
+	return self._className
 end
 --
 
