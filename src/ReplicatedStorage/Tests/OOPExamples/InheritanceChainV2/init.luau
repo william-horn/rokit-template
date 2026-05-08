@@ -13,11 +13,16 @@ function InheritanceChainV2:run()
 	local s = Stack.new()
 	local g1 = Grandparent.new()
 
-	print(p1:toString())
-	print(o1.toString(g1))
+	-- print(p1:toString())
+	-- print(o1.toString(g1))
 
-	print(p1)
-	print(Grandparent)
+	-- print(p1)
+	-- print(Grandparent)
+
+	print(Object:is(o1))
+	print(Object:is(p1))
+
+	print(Parent:is(p1))
 end
 
 return InheritanceChainV2

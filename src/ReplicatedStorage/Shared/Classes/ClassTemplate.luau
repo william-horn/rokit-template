@@ -5,6 +5,7 @@ local Table = require(ReplicatedStorage.Shared.Types.Table)
 export type ClassTemplatePublic = {
 	getInstanceCount: (self: any) -> number,
 	getClassName: (self: any) -> string,
+	is: (self: any, obj: any) -> boolean,
 }
 
 export type ClassTemplatePrivate = {
@@ -29,6 +30,10 @@ local function getClassName(self: ClassTemplate)
 	return self._className
 end
 
+local function is(self: ClassTemplate, obj: any)
+	return type(obj) == "table" and getmetatable(obj) == self
+end
+
 local function newClass(_className: string?, superClass: Table.Map<string, any>?)
 	local className: string = _className or "Class"
 
@@ -46,6 +51,7 @@ local function newClass(_className: string?, superClass: Table.Map<string, any>?
 	-- public methods
 	class.getInstanceCount = getInstanceCount
 	class.getClassName = getClassName
+	class.is = is
 
 	-- private methods
 	class._incrementInstanceCount = _incrementInstanceCount
