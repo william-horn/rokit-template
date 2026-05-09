@@ -76,6 +76,8 @@ local Stack = newClass("Stack", Object) :: ClassInternal
 
 -- Constructors
 function Stack.new()
+	Stack:__init__()
+
 	-- Init public & private fields
 	local _self: InstanceFields = {
 		_super = Super :: Super.ClassInternal,
@@ -86,11 +88,8 @@ function Stack.new()
 	local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, Stack)
 	-- local self = setmetatable(_self :: InstanceInternal, Stack)
 
-	Stack:_incrementInstanceCount()
-
 	-- Assign private fields
-	self._serialId = Object:getInstanceCount()
-	self._className = "Stack"
+	self._className = Stack:getClassName()
 	self._stack = _self._stack
 	--
 

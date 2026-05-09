@@ -52,16 +52,16 @@ export type ClassMethodsPrivate<O> = {
 	-- private static methods here
 }
 
-export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O> & newClass.ClassTemplatePublic
+export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O> & newClass.ClassTemplatePublic<InstancePublic>
 
 export type ClassInternal =
 	ClassPublic<InstancePublic>
 	& ClassMethodsPrivate<InstancePublic>
 	& ClassFieldsPrivate
 	& InstanceMethods
-	& newClass.ClassTemplatePrivate
+	& newClass.ClassTemplatePrivate<InstancePublic>
 
-local NewClass = newClass("NewClass", Object) :: ClassInternal
+local NewClass = newClass({} :: InstancePublic, "NewClass", Object) :: ClassInternal
 
 -- Private static fields
 --
@@ -71,20 +71,14 @@ local NewClass = newClass("NewClass", Object) :: ClassInternal
 
 -- Constructors
 function NewClass.new()
-	-- Init public & private fields
-	local _self: InstanceFields = {
-		_super = Super :: Super.ClassInternal,
-	}
+	NewClass:__init__()
 
 	-- If inheriting:
-	local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, NewClass)
+	local self = setmetatable((Super.new() :: any) :: InstanceInternal, NewClass)
 	-- local self = setmetatable(_self :: InstanceInternal, NewClass)
 
-	NewClass:_incrementInstanceCount()
-
 	-- Assign private fields
-	self._serialId = Object:getInstanceCount()
-	self._className = "NewClass"
+	self._className = NewClass:getClassName()
 	--
 
 	-- Assign public fields

@@ -1,9 +1,26 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local EventSignal = require(ReplicatedStorage.Shared.Classes.EventSignal)
+local Object = require(ReplicatedStorage.Shared.Classes.Object)
 
-local sig = EventSignal.new()
-sig:connect(function(event: boolean, arg1, arg2) end)
+local EventSignalTest = {}
+
+function EventSignalTest:run()
+	Object.new()
+	Object.new()
+
+	local parentSig = EventSignal.new()
+	local sig = EventSignal.new(parentSig, { dispatchInterval = 10 })
+
+	print(parentSig)
+
+	print(sig)
+	print(sig:getId())
+	print(sig:toString())
+
+	sig:connect(function(e) end)
+	sig:connect(function(...) end, { priority = 0 })
+end
 
 --[[
     local parentSig = EventSignal.new({
@@ -33,3 +50,5 @@ sig:connect(function(event: boolean, arg1, arg2) end)
     parentSig:fire()
     parentSig:fireOnly()
 ]]
+
+return EventSignalTest

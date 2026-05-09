@@ -3,12 +3,13 @@
 	@author: William J. Horn
 	@written: 10/20/2025
 
-	Parent class
+	SignalConnection class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Object = require(ReplicatedStorage.Shared.Classes.Object)
-local Super = require(script.Parent.Grandparent)
+local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
+local Table = require(ReplicatedStorage.Shared.Types.Table)
 
 -- Non-static types
 export type InstanceFieldsPublic = {
@@ -18,11 +19,13 @@ export type InstanceFieldsPublic = {
 export type InstanceFieldsPrivate = {
 	-- private instance fields here
 	_super: Super.ClassInternal, -- inheritance
+	_settings: ConnectionSettings,
 }
 
 export type InstanceMethodsPublic = {
-	--
-	parentMethod: (self: any) -> string,
+	-- public instance methods here
+	getSettings: (self: any) -> ConnectionSettings,
+	getPriority: (self: any) -> number,
 }
 
 export type InstanceMethodsPrivate = {
@@ -42,15 +45,17 @@ export type ClassFieldsPublic = {
 
 export type ClassFieldsPrivate = {
 	-- private static fields here
+	_instancePool: Table.ArrayOf<InstancePublic>,
 }
 
 export type ClassMethodsPublic<O> = {
 	-- public static methods here
-	new: () -> O,
+	new: (connectionSettings: ConnectionSettings) -> O,
 }
 
 export type ClassMethodsPrivate<O> = {
 	-- private static methods here
+	_addInstance: (self: any, signalConnection: InstancePublic) -> (),
 }
 
 export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O> & newClass.ClassTemplatePublic
@@ -62,7 +67,11 @@ export type ClassInternal =
 	& InstanceMethods
 	& newClass.ClassTemplatePrivate
 
-local Parent = newClass("Parent", Super) :: ClassInternal
+export type ConnectionSettings = {
+	priority: number,
+}
+
+local SignalConnection = newClass("SignalConnection", Object) :: ClassInternal
 
 -- Private static fields
 --
@@ -71,22 +80,22 @@ local Parent = newClass("Parent", Super) :: ClassInternal
 --
 
 -- Constructors
-function Parent.new()
-	Parent:__init__()
+function SignalConnection.new(connectionSettings)
+	SignalConnection:__init__()
 
 	-- Init public & private fields
 	local _self: InstanceFields = {
 		_super = Super :: Super.ClassInternal,
+		_settings = connectionSettings,
 	}
 
 	-- If inheriting:
-	local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, Parent)
-	-- local self = setmetatable(_self :: InstanceInternal, Parent)
+	local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, SignalConnection)
+	-- local self = setmetatable(_self :: InstanceInternal, SignalConnection)
 
 	-- Assign private fields
-	self._className = Parent:getClassName()
-	self._age = 26
-	self._name = "William"
+	self._className = SignalConnection:getClassName()
+	self._settings = _self._settings
 	--
 
 	-- Assign public fields
@@ -101,15 +110,22 @@ end
 --
 
 -- Private static methods
+function SignalConnection._addInstance(self: ClassInternal, signalConnection: InstancePublic)
+	self._instancePool[#self._instancePool + 1] = signalConnection
+end
 --
 
 -- Private instance methods
 --
 
 -- Public instance methods
-function Parent.parentMethod(self: InstanceInternal)
-	return "Some parent thing"
+function SignalConnection.getSettings(self: InstanceInternal)
+	return self._settings
+end
+
+function SignalConnection.getPriority(self: InstanceInternal)
+	return self._settings.priority
 end
 --
 
-return Parent :: ClassPublic<InstancePublic>
+return SignalConnection :: ClassPublic<InstancePublic>

@@ -77,6 +77,8 @@ local Grandparent = newClass("Grandparent", Super) :: ClassInternal
 
 -- Constructors
 function Grandparent.new()
+	Grandparent:__init__()
+
 	-- Init public & private fields
 	local _self: InstanceFields = {
 		_super = Super :: Super.ClassInternal,
@@ -88,10 +90,7 @@ function Grandparent.new()
 	local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, Grandparent)
 	-- local self = setmetatable(_self :: InstanceInternal, Grandparent)
 
-	Grandparent:_incrementInstanceCount()
-
 	-- Assign private fields
-	self._serialId = Object:getInstanceCount()
 	self._className = Grandparent:getClassName()
 	self._age = _self._age
 	self._name = _self._name

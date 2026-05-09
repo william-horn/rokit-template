@@ -6,6 +6,7 @@
 	EventSignal class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SignalConnection = require(script.Parent.SignalConnection)
 local Object = require(ReplicatedStorage.Shared.Classes.Object)
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
@@ -22,12 +23,12 @@ export type InstanceFieldsPrivate = {
 	_parent: InstancePublic?,
 	_eventSettings: EventSettings,
 	_propagating: boolean,
-	_connections: Table.ArrayOf<{}>,
+	_connections: Table.ArrayOf<SignalConnection.InstancePublic>,
 }
 
 export type InstanceMethodsPublic = {
 	-- public instance methods here
-	connect: (self: any, handler: ConnectionHandler, connectionSettings: ConnectionSettings?) -> (),
+	connect: (self: any, handler: (...any) -> (), connectionSettings: SignalConnection.ConnectionSettings?) -> (),
 	getParent: (self: any) -> InstancePublic?,
 }
 
@@ -52,7 +53,7 @@ export type ClassFieldsPrivate = {
 
 export type ClassMethodsPublic<O> = {
 	-- public static methods here
-	new: (O? | EventSettings?, EventSettings?) -> O,
+	new: (parent: O? | EventSettings?, eventSettings: EventSettings?) -> O,
 }
 
 export type ClassMethodsPrivate<O> = {
@@ -68,10 +69,7 @@ export type ClassInternal =
 	& InstanceMethods
 	& newClass.ClassTemplatePrivate
 
-export type ConnectionSettings = {
-	priority: number?,
-}
-
+-- EventSignal interfaces --
 export type EventSettings = {
 	dispatchLimit: number?,
 	dispatchInterval: number?,
@@ -83,8 +81,6 @@ export type EventSettings = {
 	queueThrottledDispatches: boolean?,
 }
 
-export type ConnectionHandler = (event: InstancePublic, ...any) -> ()
-
 local EventSignal = newClass("EventSignal", Object) :: ClassInternal
 
 -- Private static fields
@@ -94,17 +90,30 @@ local EventSignal = newClass("EventSignal", Object) :: ClassInternal
 --
 
 -- Constructors
-function EventSignal.new(parent: InstancePublic? | EventSettings?, eventSettings: EventSettings?)
+function EventSignal.new(inputParent, inputEventSettings)
+	EventSignal:__init__()
+	local readEventSettings: EventSettings = inputEventSettings or {}
+
 	-- Init public & private fields
-	local _eventSettings: EventSettings = eventSettings or {
-		dispatchLimit = 0,
-		dispatchInterval = 0,
-	}
+	local hasParent = EventSignal:is(inputParent)
+	local parent: InstancePublic? = inputParent :: InstancePublic?
+	local eventSettings: EventSettings = {}
+
+	if inputParent ~= nil and hasParent == false then
+		readEventSettings = inputParent :: EventSettings
+		parent = nil
+	end
+
+	eventSettings.dispatchInterval = readEventSettings.dispatchInterval or 0
+	eventSettings.dispatchLimit = readEventSettings.dispatchLimit or 0
+	eventSettings.throttleLimit = readEventSettings.throttleLimit or 0
+	eventSettings.throttleDuration = readEventSettings.throttleDuration or 0
+	eventSettings.throttleResetInterval = readEventSettings.throttleResetInterval or 0
 
 	local _self: InstanceFields = {
 		_super = Super :: Super.ClassInternal,
-		_parent = EventSignal:is(parent) and parent :: InstancePublic or nil,
-		_eventSettings = _eventSettings,
+		_parent = parent,
+		_eventSettings = eventSettings :: EventSettings,
 		_connections = {},
 		_propagating = false,
 	}
@@ -113,11 +122,12 @@ function EventSignal.new(parent: InstancePublic? | EventSettings?, eventSettings
 	local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, EventSignal)
 	-- local self = setmetatable(_self :: InstanceInternal, EventSignal)
 
-	EventSignal:_incrementInstanceCount()
-
 	-- Assign private fields
-	self._serialId = Object:getInstanceCount()
-	self._className = "EventSignal"
+	self._className = EventSignal:getClassName()
+	self._parent = _self._parent
+	self._eventSettings = _self._eventSettings
+	self._connections = _self._connections
+	self._propagating = _self._propagating
 	--
 
 	-- Assign public fields
@@ -138,7 +148,26 @@ end
 --
 
 -- Public instance methods
-function EventSignal.connect(self: InstanceInternal, handler: ConnectionHandler, connectionSettings) end
+function EventSignal.connect(self: InstanceInternal, handler, inputConnectionSettings)
+	local readConnectionSettings = (inputConnectionSettings or {}) :: SignalConnection.ConnectionSettings
+	local connectionSettings = {} :: SignalConnection.ConnectionSettings
+
+	connectionSettings.priority = readConnectionSettings.priority or 0
+
+	local signalConnection = SignalConnection.new(connectionSettings)
+
+	if #self._connections == 0 then
+		self._connections[1] = signalConnection
+	else
+		for index = 1, #self._connections do
+			local connection = self._connections[index]
+			if signalConnection:getPriority() <= connection:getPriority() then
+				table.insert(self._connections, index, signalConnection)
+				break
+			end
+		end
+	end
+end
 
 function EventSignal.getParent(self: InstanceInternal)
 	return self._parent

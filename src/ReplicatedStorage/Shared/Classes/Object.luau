@@ -19,17 +19,23 @@ export type InstanceFieldsPrivate = {
 	-- private instance fields here
 	_serialId: number,
 	_className: string,
+	_isDestroyed: boolean,
+	_class: ClassInternal,
 	-- _super: SuperType.ClassInternal, -- inheritance
 }
 
 export type InstanceMethodsPublic = {
-	toString: (self: any) -> string,
-	getId: (self: any) -> number,
-	getClassName: (self: any) -> string,
+	toString: (self: InstanceInternal) -> string,
+	getId: (self: InstanceInternal) -> number,
+	getClassName: (self: InstanceInternal) -> string,
+	destroy: (self: InstanceInternal) -> (),
+	isDestroyed: (self: InstanceInternal) -> boolean,
+	getClass: (self: InstanceInternal) -> ClassPublic<InstancePublic>,
 }
 
 export type InstanceMethodsPrivate = {
 	-- private instance methods
+	_getClass: (self: InstanceInternal) -> ClassInternal,
 }
 
 export type InstanceFields = InstanceFieldsPrivate & InstanceFieldsPublic
@@ -57,16 +63,16 @@ export type ClassMethodsPrivate<O> = {
 	-- private static methods here
 }
 
-export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O> & newClass.ClassTemplatePublic
+export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O> & newClass.ClassTemplatePublic<O>
 
 export type ClassInternal =
 	ClassPublic<InstancePublic>
 	& ClassMethodsPrivate<InstancePublic>
 	& ClassFieldsPrivate
 	& InstanceMethods
-	& newClass.ClassTemplatePrivate
+	& newClass.ClassTemplatePrivate<InstancePublic>
 
-local Object = newClass("Object") :: ClassInternal
+local Object = newClass({} :: InstancePublic, "Object") :: ClassInternal
 
 -- Private static fields
 -- Object._foo = "bar"
@@ -77,22 +83,14 @@ local Object = newClass("Object") :: ClassInternal
 
 -- Constructors
 function Object.new()
-	-- Init public & private fields
-	local _self: InstanceFields = {
-		_serialId = 0,
-		_className = "",
-		--_super = Super :: Super.ClassInternal
-	}
-
 	-- If inheriting:
 	-- local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, Object)
-	local self = setmetatable(_self :: InstanceInternal, Object)
-
-	Object:_incrementInstanceCount()
+	local self = setmetatable({} :: InstanceInternal, Object)
+	Object:__init__(self)
 
 	-- Assign private fields
-	self._serialId = Object:getInstanceCount()
-	self._className = Object:getClassName()
+	self._serialId = Object:getActiveInstanceCount()
+	self._isDestroyed = false
 	--
 
 	-- Assign public fields
@@ -113,16 +111,27 @@ end
 --
 
 -- Public instance methods
-function Object.toString(self: InstanceInternal)
+function Object.toString(self)
 	return self._className .. "#" .. self:getId()
 end
 
-function Object.getId(self: InstanceInternal)
+function Object.getId(self)
 	return self._serialId
 end
 
-function Object.getClassName(self: InstanceInternal)
+function Object.getClassName(self)
 	return self._className
+end
+
+function Object.destroy(self)
+	local _class = self:_getClass()
+	_class:_decrementActiveInstanceCount()
+	_class._activeInstances[self] = nil
+	self._isDestroyed = true
+end
+
+function Object.isDestroyed(self)
+	return self._isDestroyed
 end
 --
 

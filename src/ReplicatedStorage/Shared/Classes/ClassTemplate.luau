@@ -2,42 +2,57 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Table = require(ReplicatedStorage.Shared.Types.Table)
 
-export type ClassTemplatePublic = {
-	getInstanceCount: (self: any) -> number,
+export type ClassTemplatePublic<O> = {
+	getActiveInstanceCount: (self: any) -> number,
 	getClassName: (self: any) -> string,
 	is: (self: any, obj: any) -> boolean,
 }
 
-export type ClassTemplatePrivate = {
-	_instanceCount: number,
-	_incrementInstanceCount: (self: any) -> (),
+export type ClassTemplatePrivate<O> = {
 	_className: string,
+	_activeInstanceCount: number,
+	_activeInstances: Table.Map<O, true>,
+	_memorizedInstances: typeof(setmetatable({} :: Table.ArrayOf<O>, { __mode = "v" })),
+	_incrementActiveInstanceCount: (self: any) -> (),
+	_decrementActiveInstanceCount: (self: any) -> (),
 	_super: Table.Map<string, any>?,
+	__init__: (self: any, instance: O) -> (),
 	__index: Table.Map<string, any>,
 }
 
-export type ClassTemplate = ClassTemplatePrivate & ClassTemplatePublic
+export type ClassTemplate<O> = ClassTemplatePublic<O> & ClassTemplatePrivate<O>
 
-local function _incrementInstanceCount(self: ClassTemplate)
-	self._instanceCount += 1
+local function _incrementActiveInstanceCount(self: ClassTemplate<any>)
+	self._activeInstanceCount += 1
 end
 
-local function getInstanceCount(self: ClassTemplate)
-	return self._instanceCount
+local function _decrementActiveInstanceCount(self: ClassTemplate<any>)
+	self._activeInstanceCount -= 1
 end
 
-local function getClassName(self: ClassTemplate)
+local function getActiveInstanceCount(self: ClassTemplate<any>)
+	return self._activeInstanceCount
+end
+
+local function getClassName(self: ClassTemplate<any>)
 	return self._className
 end
 
-local function is(self: ClassTemplate, obj: any)
-	return type(obj) == "table" and getmetatable(obj) == self
+local function is(self: ClassTemplate<any>, obj: any)
+	return typeof(obj) == "table" and getmetatable(obj) == self
 end
 
-local function newClass(_className: string?, superClass: Table.Map<string, any>?)
-	local className: string = _className or "Class"
+local function __init__(self: ClassTemplate<any>, instance: any)
+	self:_incrementActiveInstanceCount()
 
-	local class = {} :: ClassTemplate
+	instance._className = self:getClassName()
+
+	self._activeInstances[instance] = true
+	self._memorizedInstances[#self._memorizedInstances + 1] = instance
+end
+
+local function newClass<O>(_: O, className: string, superClass: Table.Map<string, any>?)
+	local class = {} :: ClassTemplate<O>
 	class.__index = setmetatable(class, superClass)
 
 	-- public fields
@@ -46,15 +61,21 @@ local function newClass(_className: string?, superClass: Table.Map<string, any>?
 	-- private fields
 	class._super = superClass
 	class._className = className
-	class._instanceCount = 0
+	class._activeInstanceCount = 0
+	class._activeInstances = {}
+	class._memorizedInstances = setmetatable({}, { __mode = "v" })
 
 	-- public methods
-	class.getInstanceCount = getInstanceCount
+	class.getActiveInstanceCount = getActiveInstanceCount
 	class.getClassName = getClassName
 	class.is = is
 
 	-- private methods
-	class._incrementInstanceCount = _incrementInstanceCount
+	class._incrementActiveInstanceCount = _incrementActiveInstanceCount
+	class._decrementActiveInstanceCount = _decrementActiveInstanceCount
+
+	-- default constructor
+	class.__init__ = __init__
 
 	return class
 end
