@@ -3,9 +3,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Table = require(ReplicatedStorage.Shared.Types.Table)
 
 export type ClassTemplatePublic<O> = {
-	getActiveInstanceCount: (self: any) -> number,
-	getClassName: (self: any) -> string,
-	is: (self: any, obj: any) -> boolean,
+	getActiveInstanceCount: (class: any) -> number,
+	getClassName: (class: any) -> string,
+	is: (class: any, obj: any) -> boolean,
+	getSuperClass: (class: any) -> UnknownClass<O>?,
 }
 
 export type ClassTemplatePrivate<O> = {
@@ -13,45 +14,53 @@ export type ClassTemplatePrivate<O> = {
 	_activeInstanceCount: number,
 	_activeInstances: Table.Map<O, true>,
 	_memorizedInstances: typeof(setmetatable({} :: Table.ArrayOf<O>, { __mode = "v" })),
-	_incrementActiveInstanceCount: (self: any) -> (),
-	_decrementActiveInstanceCount: (self: any) -> (),
-	_super: Table.Map<string, any>?,
-	__init__: (self: any, instance: O) -> (),
-	__index: Table.Map<string, any>,
+	_incrementActiveInstanceCount: (class: any) -> (),
+	_decrementActiveInstanceCount: (class: any) -> (),
+	_super: UnknownClass<O>?,
+	__init__: (class: any, instance: O) -> (),
+	__index: ClassTemplate<O>, --Table.Map<string, any>,
 }
 
 export type ClassTemplate<O> = ClassTemplatePublic<O> & ClassTemplatePrivate<O>
+export type UnknownClass<O> = ClassTemplatePublic<O> | ClassTemplate<O>
+export type AnyClass = ClassTemplate<any>
 
-local function _incrementActiveInstanceCount(self: ClassTemplate<any>)
-	self._activeInstanceCount += 1
+local function _incrementActiveInstanceCount(class: AnyClass)
+	class._activeInstanceCount += 1
 end
 
-local function _decrementActiveInstanceCount(self: ClassTemplate<any>)
-	self._activeInstanceCount -= 1
+local function _decrementActiveInstanceCount(class: AnyClass)
+	class._activeInstanceCount -= 1
 end
 
-local function getActiveInstanceCount(self: ClassTemplate<any>)
-	return self._activeInstanceCount
+local function getActiveInstanceCount(class: AnyClass)
+	return class._activeInstanceCount
 end
 
-local function getClassName(self: ClassTemplate<any>)
-	return self._className
+local function getClassName(class: AnyClass)
+	return class._className
 end
 
-local function is(self: ClassTemplate<any>, obj: any)
-	return typeof(obj) == "table" and getmetatable(obj) == self
+local function is(class: AnyClass, obj: any)
+	return typeof(obj) == "table" and getmetatable(obj) == class
 end
 
-local function __init__(self: ClassTemplate<any>, instance: any)
-	self:_incrementActiveInstanceCount()
-
-	instance._className = self:getClassName()
-
-	self._activeInstances[instance] = true
-	self._memorizedInstances[#self._memorizedInstances + 1] = instance
+local function getSuperClass(class: AnyClass)
+	return class._super
 end
 
-local function newClass<O>(_: O, className: string, superClass: Table.Map<string, any>?)
+local function __init__(class: AnyClass, instance)
+	class:_incrementActiveInstanceCount()
+
+	class._activeInstances[instance] = true
+	class._memorizedInstances[#class._memorizedInstances + 1] = instance
+
+	instance._class = class
+	instance._className = class:getClassName()
+	instance._super = class._super
+end
+
+local function newClass<O>(_: O, className: string, superClass: UnknownClass<any>?)
 	local class = {} :: ClassTemplate<O>
 	class.__index = setmetatable(class, superClass)
 
@@ -68,6 +77,7 @@ local function newClass<O>(_: O, className: string, superClass: Table.Map<string
 	-- public methods
 	class.getActiveInstanceCount = getActiveInstanceCount
 	class.getClassName = getClassName
+	class.getSuperClass = getSuperClass
 	class.is = is
 
 	-- private methods

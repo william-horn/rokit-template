@@ -7,7 +7,6 @@
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SignalConnection = require(script.Parent.SignalConnection)
-local Object = require(ReplicatedStorage.Shared.Classes.Object)
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
 local Table = require(ReplicatedStorage.Shared.Types.Table)
@@ -60,14 +59,14 @@ export type ClassMethodsPrivate<O> = {
 	-- private static methods here
 }
 
-export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O> & newClass.ClassTemplatePublic
+export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O> & newClass.ClassTemplatePublic<O>
 
 export type ClassInternal =
 	ClassPublic<InstancePublic>
 	& ClassMethodsPrivate<InstancePublic>
 	& ClassFieldsPrivate
 	& InstanceMethods
-	& newClass.ClassTemplatePrivate
+	& newClass.ClassTemplatePrivate<InstancePublic>
 
 -- EventSignal interfaces --
 export type EventSettings = {
@@ -81,7 +80,7 @@ export type EventSettings = {
 	queueThrottledDispatches: boolean?,
 }
 
-local EventSignal = newClass("EventSignal", Object) :: ClassInternal
+local EventSignal = newClass({} :: InstancePublic, "EventSignal", Super) :: ClassInternal
 
 -- Private static fields
 --
@@ -91,7 +90,6 @@ local EventSignal = newClass("EventSignal", Object) :: ClassInternal
 
 -- Constructors
 function EventSignal.new(inputParent, inputEventSettings)
-	EventSignal:__init__()
 	local readEventSettings: EventSettings = inputEventSettings or {}
 
 	-- Init public & private fields
@@ -110,24 +108,16 @@ function EventSignal.new(inputParent, inputEventSettings)
 	eventSettings.throttleDuration = readEventSettings.throttleDuration or 0
 	eventSettings.throttleResetInterval = readEventSettings.throttleResetInterval or 0
 
-	local _self: InstanceFields = {
-		_super = Super :: Super.ClassInternal,
-		_parent = parent,
-		_eventSettings = eventSettings :: EventSettings,
-		_connections = {},
-		_propagating = false,
-	}
-
 	-- If inheriting:
-	local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, EventSignal)
+	local self = setmetatable((Super.new() :: any) :: InstanceInternal, EventSignal)
+	EventSignal:__init__(self)
 	-- local self = setmetatable(_self :: InstanceInternal, EventSignal)
 
 	-- Assign private fields
-	self._className = EventSignal:getClassName()
-	self._parent = _self._parent
-	self._eventSettings = _self._eventSettings
-	self._connections = _self._connections
-	self._propagating = _self._propagating
+	self._parent = parent
+	self._eventSettings = eventSettings
+	self._connections = {}
+	self._propagating = false
 	--
 
 	-- Assign public fields

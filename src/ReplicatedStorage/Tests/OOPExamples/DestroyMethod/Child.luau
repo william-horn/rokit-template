@@ -3,12 +3,11 @@
 	@author: William J. Horn
 	@written: 10/20/2025
 
-	SignalConnection class
+	Child class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Super = require(ReplicatedStorage.Shared.Classes.Object)
+local Super = require(script.Parent:FindFirstChild("Parent"))
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
-local Table = require(ReplicatedStorage.Shared.Types.Table)
 
 -- Non-static types
 export type InstanceFieldsPublic = {
@@ -17,14 +16,12 @@ export type InstanceFieldsPublic = {
 
 export type InstanceFieldsPrivate = {
 	-- private instance fields here
-	_super: Super.ClassInternal, -- inheritance
-	_settings: ConnectionSettings,
+	-- _super: Super.ClassInternal, -- inheritance
 }
 
 export type InstanceMethodsPublic = {
 	-- public instance methods here
-	getSettings: (self: any) -> ConnectionSettings,
-	getPriority: (self: any) -> number,
+	childMethod: (self: any) -> (),
 }
 
 export type InstanceMethodsPrivate = {
@@ -44,33 +41,28 @@ export type ClassFieldsPublic = {
 
 export type ClassFieldsPrivate = {
 	-- private static fields here
-	_instancePool: Table.ArrayOf<InstancePublic>,
 }
 
-export type ClassMethodsPublic<O> = {
+export type ClassMethodsPublic = {
 	-- public static methods here
-	new: (connectionSettings: ConnectionSettings) -> O,
+	new: () -> InstancePublic,
+	childConstructor: () -> (),
 }
 
-export type ClassMethodsPrivate<O> = {
+export type ClassMethodsPrivate = {
 	-- private static methods here
-	_addInstance: (self: any, signalConnection: InstancePublic) -> (),
 }
 
-export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O> & newClass.ClassTemplatePublic<O>
+export type ClassPublic = ClassFieldsPublic & ClassMethodsPublic & newClass.ClassTemplatePublic<InstancePublic>
 
 export type ClassInternal =
-	ClassPublic<InstancePublic>
-	& ClassMethodsPrivate<InstancePublic>
+	ClassPublic
+	& ClassMethodsPrivate
 	& ClassFieldsPrivate
 	& InstanceMethods
 	& newClass.ClassTemplatePrivate<InstancePublic>
 
-export type ConnectionSettings = {
-	priority: number,
-}
-
-local SignalConnection = newClass({} :: InstancePublic, "SignalConnection", Super) :: ClassInternal
+local Child = newClass({} :: InstancePublic, "Child", Super) :: ClassInternal
 
 -- Private static fields
 --
@@ -79,14 +71,13 @@ local SignalConnection = newClass({} :: InstancePublic, "SignalConnection", Supe
 --
 
 -- Constructors
-function SignalConnection.new(connectionSettings)
+function Child.new()
 	-- If inheriting:
-	local self = setmetatable((Super.new() :: any) :: InstanceInternal, SignalConnection)
-	-- local self = setmetatable(_self :: InstanceInternal, SignalConnection)
-	SignalConnection:__init__(self)
+	local self = setmetatable((Super.new() :: any) :: InstanceInternal, Child)
+	-- local self = setmetatable(_self :: InstanceInternal, Child)
+	Child:__init__(self)
 
 	-- Assign private fields
-	self._settings = connectionSettings
 	--
 
 	-- Assign public fields
@@ -101,22 +92,15 @@ end
 --
 
 -- Private static methods
-function SignalConnection._addInstance(self: ClassInternal, signalConnection: InstancePublic)
-	self._instancePool[#self._instancePool + 1] = signalConnection
-end
 --
 
 -- Private instance methods
 --
 
 -- Public instance methods
-function SignalConnection.getSettings(self: InstanceInternal)
-	return self._settings
-end
-
-function SignalConnection.getPriority(self: InstanceInternal)
-	return self._settings.priority
+function Child.childMethod(self: InstanceInternal)
+	print("Child method ran")
 end
 --
 
-return SignalConnection :: ClassPublic<InstancePublic>
+return Child :: ClassPublic

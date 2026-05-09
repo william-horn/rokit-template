@@ -6,7 +6,6 @@
 	Stack class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Object = require(ReplicatedStorage.Shared.Classes.Object)
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local Table = require(ReplicatedStorage.Shared.Types.Table)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
@@ -57,16 +56,16 @@ export type ClassMethodsPrivate<O> = {
 	-- private static methods here
 }
 
-export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O> & newClass.ClassTemplatePublic
+export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O> & newClass.ClassTemplatePublic<O>
 
 export type ClassInternal =
 	ClassPublic<InstancePublic>
 	& ClassMethodsPrivate<InstancePublic>
 	& ClassFieldsPrivate
 	& InstanceMethods
-	& newClass.ClassTemplatePrivate
+	& newClass.ClassTemplatePrivate<InstancePublic>
 
-local Stack = newClass("Stack", Object) :: ClassInternal
+local Stack = newClass({} :: InstancePublic, "Stack", Super) :: ClassInternal
 
 -- Private static fields
 --
@@ -76,21 +75,13 @@ local Stack = newClass("Stack", Object) :: ClassInternal
 
 -- Constructors
 function Stack.new()
-	Stack:__init__()
-
-	-- Init public & private fields
-	local _self: InstanceFields = {
-		_super = Super :: Super.ClassInternal,
-		_stack = {},
-	}
-
 	-- If inheriting:
-	local self = setmetatable((_self._super.new() :: any) :: InstanceInternal, Stack)
+	local self = setmetatable((Super.new() :: any) :: InstanceInternal, Stack)
 	-- local self = setmetatable(_self :: InstanceInternal, Stack)
+	Stack:__init__(self)
 
 	-- Assign private fields
-	self._className = Stack:getClassName()
-	self._stack = _self._stack
+	self._stack = {}
 	--
 
 	-- Assign public fields

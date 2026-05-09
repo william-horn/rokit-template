@@ -6,7 +6,6 @@
 	NewClass class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Object = require(ReplicatedStorage.Shared.Classes.Object)
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
 
@@ -17,7 +16,7 @@ export type InstanceFieldsPublic = {
 
 export type InstanceFieldsPrivate = {
 	-- private instance fields here
-	_super: Super.ClassInternal, -- inheritance
+	-- _super: Super.ClassInternal, -- inheritance
 }
 
 export type InstanceMethodsPublic = {
@@ -52,7 +51,7 @@ export type ClassMethodsPrivate<O> = {
 	-- private static methods here
 }
 
-export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O> & newClass.ClassTemplatePublic<InstancePublic>
+export type ClassPublic<O> = ClassFieldsPublic & ClassMethodsPublic<O> & newClass.ClassTemplatePublic<O>
 
 export type ClassInternal =
 	ClassPublic<InstancePublic>
@@ -61,7 +60,7 @@ export type ClassInternal =
 	& InstanceMethods
 	& newClass.ClassTemplatePrivate<InstancePublic>
 
-local NewClass = newClass({} :: InstancePublic, "NewClass", Object) :: ClassInternal
+local NewClass = newClass({} :: InstancePublic, "NewClass", Super) :: ClassInternal
 
 -- Private static fields
 --
@@ -71,14 +70,12 @@ local NewClass = newClass({} :: InstancePublic, "NewClass", Object) :: ClassInte
 
 -- Constructors
 function NewClass.new()
-	NewClass:__init__()
-
 	-- If inheriting:
 	local self = setmetatable((Super.new() :: any) :: InstanceInternal, NewClass)
 	-- local self = setmetatable(_self :: InstanceInternal, NewClass)
+	NewClass:__init__(self)
 
 	-- Assign private fields
-	self._className = NewClass:getClassName()
 	--
 
 	-- Assign public fields
