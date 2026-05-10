@@ -10,29 +10,43 @@ local Super = require(script.Parent:FindFirstChild("Parent"))
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
 
 -- Non-static types
-export type InstanceFieldsPublic = {
+export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
 	-- public instance fields here
 }
 
-export type InstanceFieldsPrivate = {
+export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	-- private instance fields here
 	-- _super: Super.ClassInternal, -- inheritance
 }
 
-export type InstanceMethodsPublic = {
+export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	-- public instance methods here
 	childMethod: (self: any) -> (),
 }
 
-export type InstanceMethodsPrivate = {
+export type LocalInstanceMethodsPrivate<CI, II, SCI> = {
 	-- private instance methods
 }
 
-export type InstanceFields = InstanceFieldsPrivate & InstanceFieldsPublic
-export type InstanceMethods = InstanceMethodsPrivate & InstanceMethodsPublic
-export type InstancePublic = InstanceMethodsPublic & InstanceFieldsPublic & Super.InstancePublic -- inherit
-export type InstancePrivate = InstanceMethodsPrivate & InstanceFieldsPrivate & Super.InstancePrivate -- inherit
-export type InstanceInternal = InstancePublic & InstancePrivate
+export type InstanceFieldsPublic<CP, IP, SCP> =
+	LocalInstanceFieldsPublic<CP, IP, SCP>
+	& Super.InstanceFieldsPublic<CP, IP, SCP>
+export type InstanceMethodsPublic<CP, IP, SCP> =
+	LocalInstanceMethodsPublic<CP, IP, SCP>
+	& Super.InstanceMethodsPublic<CP, IP, SCP>
+export type InstanceFieldsPrivate<CI, II, SCI> =
+	LocalInstanceFieldsPrivate<CI, II, SCI>
+	& Super.InstanceFieldsPrivate<CI, II, SCI>
+export type InstanceMethodsPrivate<CI, II, SCI> =
+	LocalInstanceMethodsPrivate<CI, II, SCI>
+	& Super.InstanceMethodsPrivate<CI, II, SCI>
+export type InstancePublic =
+	InstanceFieldsPublic<ClassPublic, InstancePublic, Super.ClassPublic>
+	& InstanceMethodsPublic<ClassPublic, InstancePublic, Super.ClassPublic>
+export type InstanceInternal =
+	InstancePublic
+	& InstanceFieldsPrivate<ClassInternal, InstanceInternal, Super.ClassInternal>
+	& InstanceMethodsPrivate<ClassInternal, InstanceInternal, Super.ClassInternal>
 
 -- Static types
 export type ClassFieldsPublic = {
@@ -53,14 +67,18 @@ export type ClassMethodsPrivate = {
 	-- private static methods here
 }
 
-export type ClassPublic = ClassFieldsPublic & ClassMethodsPublic & newClass.ClassTemplatePublic<InstancePublic>
+export type ClassPublic =
+	ClassFieldsPublic
+	& ClassMethodsPublic
+	& newClass.ClassTemplatePublic<InstancePublic, Super.ClassPublic>
 
 export type ClassInternal =
 	ClassPublic
 	& ClassMethodsPrivate
 	& ClassFieldsPrivate
-	& InstanceMethods
-	& newClass.ClassTemplatePrivate<InstancePublic>
+	& InstanceMethodsPrivate<ClassInternal, InstanceInternal, Super.ClassInternal>
+	& InstanceMethodsPublic<ClassPublic, InstancePublic, Super.ClassPublic>
+	& newClass.ClassTemplatePrivate<InstancePublic, Super.ClassPublic>
 
 local Child = newClass({} :: InstancePublic, "Child", Super) :: ClassInternal
 
@@ -99,7 +117,7 @@ end
 
 -- Public instance methods
 function Child.childMethod(self: InstanceInternal)
-	print("Child method ran")
+	print("Child method", self:getClassName())
 end
 --
 

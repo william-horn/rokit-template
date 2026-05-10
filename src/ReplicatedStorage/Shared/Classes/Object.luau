@@ -8,44 +8,49 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 -- local Table = require(ReplicatedStorage.Shared.Types.Table)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
--- local Super = nil
+local Super = nil
 
 -- Non-static types
-export type InstanceFieldsPublic<CP, IP, SCP> = {
+export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
 	-- public instance fields here
 }
 
-export type InstanceFieldsPrivate<CI, II, SCI> = {
+export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	-- private instance fields here
 	_serialId: number,
 	_className: string,
 	_isDestroyed: boolean,
 	_class: CI,
-	_super: SCI?,
+	_super: SCI,
 }
 
-export type InstanceMethodsPublic<CP, IP, SCP> = {
+export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	toString: (self: any) -> string,
 	getId: (self: any) -> number,
 	getClassName: (self: any) -> string,
 	destroy: (self: any) -> (),
 	isDestroyed: (self: any) -> boolean,
 	getClass: (self: any) -> CP,
-	getSuperClass: (self: any) -> SCP?,
+	getSuperClass: (self: any) -> SCP,
 }
 
-export type InstanceMethodsPrivate<CI, II, SCI> = {
+export type LocalInstanceMethodsPrivate<CI, II, SCI> = {
 	-- private instance methods
 	_getClass: (self: any) -> CI,
 }
 
+export type InstanceFieldsPublic<CP, IP, SCP> = LocalInstanceFieldsPublic<CP, IP, SCP> -- & Super.InstanceFieldsPublic<CP, IP, SCP>
+export type InstanceMethodsPublic<CP, IP, SCP> = LocalInstanceMethodsPublic<CP, IP, SCP> -- & Super.InstanceMethodsPublic<CP, IP, SCP>
+export type InstanceFieldsPrivate<CI, II, SCI> = LocalInstanceFieldsPrivate<CI, II, SCI> -- & Super.InstanceFieldsPrivate<CI, II, SCI>
+export type InstanceMethodsPrivate<CI, II, SCI> = LocalInstanceMethodsPrivate<CI, II, SCI> -- & Super.InstanceMethodsPrivate<CI, II, SCI>
+
 export type InstancePublic =
-	InstanceMethodsPublic<ClassPublic, InstancePublic, nil>
-	& InstanceFieldsPublic<ClassPublic, InstancePublic, nil>
+	InstanceFieldsPublic<ClassPublic, InstancePublic, nil>
+	& InstanceMethodsPublic<ClassPublic, InstancePublic, nil>
 export type InstanceInternal =
 	InstancePublic
-	& InstanceMethodsPrivate<ClassInternal, InstanceInternal, nil>
 	& InstanceFieldsPrivate<ClassInternal, InstanceInternal, nil>
+	& InstanceMethodsPrivate<ClassInternal, InstanceInternal, nil>
 
 -- Static types
 export type ClassFieldsPublic = {
@@ -77,7 +82,7 @@ export type ClassInternal =
 	& InstanceMethodsPublic<ClassPublic, InstancePublic, nil>
 	& newClass.ClassTemplatePrivate<InstancePublic, nil>
 
-local Object = newClass({} :: InstancePublic, "Object") :: ClassInternal
+local Object = newClass({} :: InstancePublic, "Object", Super) :: ClassInternal
 
 -- Private static fields
 --
@@ -131,6 +136,7 @@ function Object.destroy(self: InstanceInternal)
 
 	local _class = self:_getClass() :: newClass.AnyClassInternal?
 
+	-- ripple up the class hierarchy
 	while _class ~= nil do
 		local class = _class :: newClass.AnyClassInternal
 		class:_decrementActiveInstanceCount()

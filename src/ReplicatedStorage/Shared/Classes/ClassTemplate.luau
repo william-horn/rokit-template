@@ -6,7 +6,7 @@ export type ClassTemplatePublic<IP, SCP> = {
 	getActiveInstanceCount: (class: any) -> number,
 	getClassName: (class: any) -> string,
 	is: (class: any, obj: any) -> boolean,
-	getSuperClass: (class: any) -> SCP?,
+	getSuperClass: (class: any) -> SCP,
 }
 
 export type ClassTemplatePrivate<IP, SCP> = {
@@ -16,7 +16,7 @@ export type ClassTemplatePrivate<IP, SCP> = {
 	_memorizedInstances: typeof(setmetatable({} :: Table.ArrayOf<IP>, { __mode = "v" })),
 	_incrementActiveInstanceCount: (class: any) -> (),
 	_decrementActiveInstanceCount: (class: any) -> (),
-	_super: SCP?,
+	_super: SCP,
 	__init__: (class: any, instance: IP) -> (),
 	__index: ClassTemplate<IP, SCP>,
 }
@@ -60,7 +60,7 @@ local function __init__(class: AnyClassInternal, instance)
 	instance._super = class._super
 end
 
-local function newClass<IP, _, SCP>(_: IP, className: string, superClass: SCP?)
+local function newClass<IP, _, SCP>(_: IP, className: string, superClass: SCP)
 	local class = {} :: ClassTemplate<IP, SCP>
 	class.__index = setmetatable(class, superClass)
 
