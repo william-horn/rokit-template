@@ -47,11 +47,6 @@ export type InstanceInternal =
 	& InstanceMethodsPrivate<ClassInternal, InstanceInternal, nil>
 	& InstanceFieldsPrivate<ClassInternal, InstanceInternal, nil>
 
-export type InheritedInstancePublic<CP, IP, SCP> = InstanceMethodsPublic<CP, IP, SCP> & InstanceFieldsPublic<CP, IP, SCP>
-export type InheritedInstancePrivate<CI, II, SCI> =
-	InstanceMethodsPrivate<CI, II, SCI>
-	& InstanceFieldsPrivate<CI, II, SCI>
-
 -- Static types
 export type ClassFieldsPublic = {
 	-- public static fields here
@@ -134,7 +129,7 @@ end
 function Object.destroy(self: InstanceInternal)
 	self._isDestroyed = true
 
-	local _class = self:_getClass() :: newClass.AnyClassUnknown?
+	local _class = self:_getClass() :: newClass.AnyClassInternal?
 
 	while _class ~= nil do
 		local class = _class :: newClass.AnyClassInternal

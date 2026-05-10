@@ -18,11 +18,11 @@ export type ClassTemplatePrivate<IP, SCP> = {
 	_decrementActiveInstanceCount: (class: any) -> (),
 	_super: SCP?,
 	__init__: (class: any, instance: IP) -> (),
-	__index: ClassTemplate<IP, SCP>, --Table.Map<string, any>,
+	__index: ClassTemplate<IP, SCP>,
 }
 
 export type ClassTemplate<IP, SCP> = ClassTemplatePublic<IP, SCP> & ClassTemplatePrivate<IP, SCP>
-export type AnyClassUnknown = ClassTemplatePublic<any, any> | ClassTemplate<any, any>
+export type AnyClassPublic = ClassTemplatePublic<any, any>
 export type AnyClassInternal = ClassTemplate<any, any>
 
 local function _incrementActiveInstanceCount(class: AnyClassInternal)
