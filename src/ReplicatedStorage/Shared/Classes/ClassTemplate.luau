@@ -2,54 +2,54 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Table = require(ReplicatedStorage.Shared.Types.Table)
 
-export type ClassTemplatePublic<O> = {
+export type ClassTemplatePublic<IP, SCP> = {
 	getActiveInstanceCount: (class: any) -> number,
 	getClassName: (class: any) -> string,
 	is: (class: any, obj: any) -> boolean,
-	getSuperClass: (class: any) -> UnknownClass<O>?,
+	getSuperClass: (class: any) -> SCP?,
 }
 
-export type ClassTemplatePrivate<O> = {
+export type ClassTemplatePrivate<IP, SCP> = {
 	_className: string,
 	_activeInstanceCount: number,
-	_activeInstances: Table.Map<O, true>,
-	_memorizedInstances: typeof(setmetatable({} :: Table.ArrayOf<O>, { __mode = "v" })),
+	_activeInstances: Table.Map<IP, true>,
+	_memorizedInstances: typeof(setmetatable({} :: Table.ArrayOf<IP>, { __mode = "v" })),
 	_incrementActiveInstanceCount: (class: any) -> (),
 	_decrementActiveInstanceCount: (class: any) -> (),
-	_super: UnknownClass<O>?,
-	__init__: (class: any, instance: O) -> (),
-	__index: ClassTemplate<O>, --Table.Map<string, any>,
+	_super: SCP?,
+	__init__: (class: any, instance: IP) -> (),
+	__index: ClassTemplate<IP, SCP>, --Table.Map<string, any>,
 }
 
-export type ClassTemplate<O> = ClassTemplatePublic<O> & ClassTemplatePrivate<O>
-export type UnknownClass<O> = ClassTemplatePublic<O> | ClassTemplate<O>
-export type AnyClass = ClassTemplate<any>
+export type ClassTemplate<IP, SCP> = ClassTemplatePublic<IP, SCP> & ClassTemplatePrivate<IP, SCP>
+export type AnyClassUnknown = ClassTemplatePublic<any, any> | ClassTemplate<any, any>
+export type AnyClassInternal = ClassTemplate<any, any>
 
-local function _incrementActiveInstanceCount(class: AnyClass)
+local function _incrementActiveInstanceCount(class: AnyClassInternal)
 	class._activeInstanceCount += 1
 end
 
-local function _decrementActiveInstanceCount(class: AnyClass)
+local function _decrementActiveInstanceCount(class: AnyClassInternal)
 	class._activeInstanceCount -= 1
 end
 
-local function getActiveInstanceCount(class: AnyClass)
+local function getActiveInstanceCount(class: AnyClassInternal)
 	return class._activeInstanceCount
 end
 
-local function getClassName(class: AnyClass)
+local function getClassName(class: AnyClassInternal)
 	return class._className
 end
 
-local function is(class: AnyClass, obj: any)
+local function is(class: AnyClassInternal, obj: any)
 	return typeof(obj) == "table" and getmetatable(obj) == class
 end
 
-local function getSuperClass(class: AnyClass)
+local function getSuperClass(class: AnyClassInternal)
 	return class._super
 end
 
-local function __init__(class: AnyClass, instance)
+local function __init__(class: AnyClassInternal, instance)
 	class:_incrementActiveInstanceCount()
 
 	class._activeInstances[instance] = true
@@ -60,8 +60,8 @@ local function __init__(class: AnyClass, instance)
 	instance._super = class._super
 end
 
-local function newClass<O>(_: O, className: string, superClass: UnknownClass<any>?)
-	local class = {} :: ClassTemplate<O>
+local function newClass<IP, _, SCP>(_: IP, className: string, superClass: SCP?)
+	local class = {} :: ClassTemplate<IP, SCP>
 	class.__index = setmetatable(class, superClass)
 
 	-- public fields

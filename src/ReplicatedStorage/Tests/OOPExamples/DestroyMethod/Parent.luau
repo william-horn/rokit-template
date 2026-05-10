@@ -30,8 +30,11 @@ export type InstanceMethodsPrivate = {
 
 export type InstanceFields = InstanceFieldsPrivate & InstanceFieldsPublic
 export type InstanceMethods = InstanceMethodsPrivate & InstanceMethodsPublic
-export type InstancePublic = InstanceMethodsPublic & InstanceFieldsPublic & Super.InstancePublic -- inherit
-export type InstancePrivate = InstanceMethodsPrivate & InstanceFieldsPrivate & Super.InstancePrivate -- inherit
+export type InstancePublic =
+	InstanceMethodsPublic
+	& InstanceFieldsPublic
+	& Super.InheritedInstancePublic<ClassPublic, InstancePublic, Super.ClassPublic>
+export type InstancePrivate = InstanceMethodsPrivate & InstanceFieldsPrivate & Super.InstancePrivate
 export type InstanceInternal = InstancePublic & InstancePrivate
 
 -- Static types
