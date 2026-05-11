@@ -20,7 +20,7 @@ export type ClassTemplatePrivate<IP, SCP> = {
 	_incrementActiveInstanceCount: (class: any) -> (),
 	_decrementActiveInstanceCount: (class: any) -> (),
 	_super: SCP,
-	__init__: (class: any, instance: IP) -> (),
+	__init__: (class: any, instance: IP, withInitialization: boolean) -> (),
 	__index: ClassTemplate<IP, SCP>,
 }
 
@@ -60,7 +60,11 @@ local function _incrementLifetimeInstanceCount(class: AnyClassInternal)
 	class._lifetimeInstanceCount += 1
 end
 
-local function __init__(class: AnyClassInternal, instance)
+local function __init__(class: AnyClassInternal, instance, withInitialization: boolean)
+	if withInitialization == false then
+		return
+	end
+
 	class:_incrementActiveInstanceCount()
 	class:_incrementLifetimeInstanceCount()
 

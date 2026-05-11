@@ -3,11 +3,15 @@
 	@author: William J. Horn
 	@written: 10/20/2025
 
-	NewClass class
+	StateValidator class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ValidationReport = require(script.Parent.ValidationReport)
+local ValidationResult = require(script.Parent.ValidationResult)
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
+
+export type StateValidator = (state: any) -> ValidationResult.InstancePublic
 
 -- Non-static types
 export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
@@ -16,10 +20,15 @@ export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
 
 export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	-- private instance fields here
+	_internalState: any,
+	_stateValidator: StateValidator,
 }
 
 export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	-- public instance methods here
+	getState: (self: any) -> any,
+	setState: (self: any, state: any) -> (),
+	useValidator: (self: any, validator: StateValidator) -> (),
 }
 
 export type LocalInstanceMethodsPrivate<CI, II, SCI> = {
@@ -57,8 +66,8 @@ export type ClassFieldsPrivate = {
 
 export type ClassMethodsPublic = {
 	-- public static methods here
-	new: () -> InstancePublic,
-	newWithInitialization: (withInitialization: boolean) -> InstancePublic,
+	new: (state: any) -> InstancePublic,
+	newWithInitialization: (withInitialization: boolean, state: any) -> InstancePublic,
 	test: () -> (),
 }
 
@@ -79,7 +88,11 @@ export type ClassInternal =
 	& InstanceMethodsPublic<ClassPublic, InstancePublic, Super.ClassPublic>
 	& newClass.ClassTemplatePrivate<InstancePublic, Super.ClassPublic>
 
-local NewClass = newClass({} :: InstancePublic, "NewClass", Super) :: ClassInternal
+local StateValidator = newClass({} :: InstancePublic, "StateValidator", Super) :: ClassInternal
+
+local defaultValidator: StateValidator = function(state)
+	return ValidationResult.new("passed")
+end
 
 -- Private static fields
 --
@@ -88,13 +101,15 @@ local NewClass = newClass({} :: InstancePublic, "NewClass", Super) :: ClassInter
 --
 
 -- Constructors
-function NewClass.newWithInitialization(withInitialization)
+function StateValidator.newWithInitialization<_, State>(withInitialization, state)
 	-- If inheriting:
-	local self = setmetatable((Super.new() :: any) :: InstanceInternal, NewClass)
-	-- local self = setmetatable(_self :: InstanceInternal, NewClass)
-	NewClass:__init__(self, withInitialization)
+	local self = setmetatable((Super.new() :: any) :: InstanceInternal, StateValidator)
+	-- local self = setmetatable(_self :: InstanceInternal, StateValidator)
+	StateValidator:__init__(self, withInitialization)
 
 	-- Assign private fields
+	self._internalState = state
+	self._stateValidator = defaultValidator
 	--
 
 	-- Assign public fields
@@ -104,12 +119,12 @@ function NewClass.newWithInitialization(withInitialization)
 	return self
 end
 
-function NewClass.new(...)
-	return NewClass.newWithInitialization(true, ...)
+function StateValidator.new(state)
+	return StateValidator.newWithInitialization(true, state)
 end
 
-function NewClass.test()
-	local o = NewClass.new()
+function StateValidator.test()
+	local o = StateValidator.new()
 end
 --
 
@@ -123,6 +138,17 @@ end
 --
 
 -- Public instance methods
+function StateValidator.getState(self: InstanceInternal)
+	return self._internalState
+end
+
+function StateValidator.setState(self: InstanceInternal, state)
+	self._internalState = state
+end
+
+function StateValidator.useValidator(self: InstanceInternal, validator)
+	self._stateValidator = validator
+end
 --
 
-return NewClass :: ClassPublic
+return StateValidator :: ClassPublic

@@ -1,17 +1,16 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local EventSignal = require(ReplicatedStorage.Shared.Classes.EventSignal)
 local Object = require(ReplicatedStorage.Shared.Classes.Object)
-local EventSignalTest = require(ReplicatedStorage.Tests.Misc.EventSignalTest)
-local DestroyMethod = require(ReplicatedStorage.Tests.OOPExamples.DestroyMethod)
--- local InheritanceChainV2 = require(ReplicatedStorage.Tests.OOPExamples.InheritanceChainV2)
+local StateValidator = require(ReplicatedStorage.Shared.Classes.StateValidator)
+local ValidationReport = require(ReplicatedStorage.Shared.Classes.ValidationReport)
+local ValidationResult = require(ReplicatedStorage.Shared.Classes.ValidationResult)
 
 local Server = {}
 
 --[[
 Run all server start up processes
 ]]
-function Server:run()
-	DestroyMethod:run()
-end
+function Server:run() end
 
 return Server

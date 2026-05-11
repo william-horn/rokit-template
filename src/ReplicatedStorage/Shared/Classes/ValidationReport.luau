@@ -3,11 +3,15 @@
 	@author: William J. Horn
 	@written: 10/20/2025
 
-	NewClass class
+	ValidationReport class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ValidationResult = require(script.Parent.ValidationResult)
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
+local Table = require(ReplicatedStorage.Shared.Types.Table)
+
+export type ValidationReport = Table.ArrayOf<ValidationResult.InstancePublic>
 
 -- Non-static types
 export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
@@ -16,10 +20,13 @@ export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
 
 export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	-- private instance fields here
+	_validationResults: ValidationReport,
 }
 
 export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	-- public instance methods here
+	addResult: (self: any, validationResult: ValidationResult.InstancePublic) -> (),
+	getReport: (self: any) -> ValidationReport,
 }
 
 export type LocalInstanceMethodsPrivate<CI, II, SCI> = {
@@ -79,7 +86,7 @@ export type ClassInternal =
 	& InstanceMethodsPublic<ClassPublic, InstancePublic, Super.ClassPublic>
 	& newClass.ClassTemplatePrivate<InstancePublic, Super.ClassPublic>
 
-local NewClass = newClass({} :: InstancePublic, "NewClass", Super) :: ClassInternal
+local ValidationReport = newClass({} :: InstancePublic, "ValidationReport", Super) :: ClassInternal
 
 -- Private static fields
 --
@@ -88,11 +95,11 @@ local NewClass = newClass({} :: InstancePublic, "NewClass", Super) :: ClassInter
 --
 
 -- Constructors
-function NewClass.newWithInitialization(withInitialization)
+function ValidationReport.newWithInitialization(withInitialization)
 	-- If inheriting:
-	local self = setmetatable((Super.new() :: any) :: InstanceInternal, NewClass)
-	-- local self = setmetatable(_self :: InstanceInternal, NewClass)
-	NewClass:__init__(self, withInitialization)
+	local self = setmetatable((Super.new() :: any) :: InstanceInternal, ValidationReport)
+	-- local self = setmetatable(_self :: InstanceInternal, ValidationReport)
+	ValidationReport:__init__(self, withInitialization)
 
 	-- Assign private fields
 	--
@@ -104,12 +111,12 @@ function NewClass.newWithInitialization(withInitialization)
 	return self
 end
 
-function NewClass.new(...)
-	return NewClass.newWithInitialization(true, ...)
+function ValidationReport.new(...)
+	return ValidationReport.newWithInitialization(true, ...)
 end
 
-function NewClass.test()
-	local o = NewClass.new()
+function ValidationReport.test()
+	local o = ValidationReport.new()
 end
 --
 
@@ -123,6 +130,13 @@ end
 --
 
 -- Public instance methods
+function ValidationReport.addResult(self: InstanceInternal, validationResult)
+	self._validationResults[#self._validationResults + 1] = validationResult
+end
+
+function ValidationReport.getReport(self: InstanceInternal)
+	return self._validationResults
+end
 --
 
-return NewClass :: ClassPublic
+return ValidationReport :: ClassPublic

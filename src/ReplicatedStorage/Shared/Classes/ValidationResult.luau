@@ -3,7 +3,7 @@
 	@author: William J. Horn
 	@written: 10/20/2025
 
-	NewClass class
+	ValidationResult class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
@@ -16,10 +16,19 @@ export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
 
 export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	-- private instance fields here
+	_hasPassed: boolean,
+	_result: ResultType,
+	_message: string,
 }
 
 export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	-- public instance methods here
+	getResult: (self: any) -> ResultType,
+	getMessage: (self: any) -> string,
+	hasPassed: (self: any) -> boolean,
+	hasFailed: (self: any) -> boolean,
+	hasWarning: (self: any) -> boolean,
+	hasError: (self: any) -> boolean,
 }
 
 export type LocalInstanceMethodsPrivate<CI, II, SCI> = {
@@ -57,8 +66,8 @@ export type ClassFieldsPrivate = {
 
 export type ClassMethodsPublic = {
 	-- public static methods here
-	new: () -> InstancePublic,
-	newWithInitialization: (withInitialization: boolean) -> InstancePublic,
+	new: (result: ResultType, message: string?) -> InstancePublic,
+	newWithInitialization: (withInitialization: boolean, result: ResultType, message: string?) -> InstancePublic,
 	test: () -> (),
 }
 
@@ -79,7 +88,9 @@ export type ClassInternal =
 	& InstanceMethodsPublic<ClassPublic, InstancePublic, Super.ClassPublic>
 	& newClass.ClassTemplatePrivate<InstancePublic, Super.ClassPublic>
 
-local NewClass = newClass({} :: InstancePublic, "NewClass", Super) :: ClassInternal
+export type ResultType = "passed" | "failed" | "warning" | "error"
+
+local ValidationResult = newClass({} :: InstancePublic, "ValidationResult", Super) :: ClassInternal
 
 -- Private static fields
 --
@@ -88,13 +99,16 @@ local NewClass = newClass({} :: InstancePublic, "NewClass", Super) :: ClassInter
 --
 
 -- Constructors
-function NewClass.newWithInitialization(withInitialization)
+function ValidationResult.newWithInitialization(withInitialization, result, message)
 	-- If inheriting:
-	local self = setmetatable((Super.new() :: any) :: InstanceInternal, NewClass)
-	-- local self = setmetatable(_self :: InstanceInternal, NewClass)
-	NewClass:__init__(self, withInitialization)
+	local self = setmetatable((Super.new() :: any) :: InstanceInternal, ValidationResult)
+	-- local self = setmetatable(_self :: InstanceInternal, ValidationResult)
+	ValidationResult:__init__(self, withInitialization)
 
 	-- Assign private fields
+	self._result = result
+	self._hasPassed = result ~= "failed"
+	self._message = message or "No description"
 	--
 
 	-- Assign public fields
@@ -104,12 +118,12 @@ function NewClass.newWithInitialization(withInitialization)
 	return self
 end
 
-function NewClass.new(...)
-	return NewClass.newWithInitialization(true, ...)
+function ValidationResult.new(...)
+	return ValidationResult.newWithInitialization(true, ...)
 end
 
-function NewClass.test()
-	local o = NewClass.new()
+function ValidationResult.test()
+	local o = ValidationResult.new("passed")
 end
 --
 
@@ -123,6 +137,21 @@ end
 --
 
 -- Public instance methods
+function ValidationResult.getResult(self: InstanceInternal)
+	return self._result
+end
+
+function ValidationResult.getMessage(self: InstanceInternal)
+	return self._message
+end
+
+function ValidationResult.hasPassed(self: InstanceInternal)
+	return self._hasPassed
+end
+
+function ValidationResult.hasFailed(self: InstanceInternal)
+	return self._hasPassed == false
+end
 --
 
-return NewClass :: ClassPublic
+return ValidationResult :: ClassPublic

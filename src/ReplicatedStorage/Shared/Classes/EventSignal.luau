@@ -28,9 +28,11 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	-- public instance methods here
 	connect: (
 		self: any,
-		handler: (...any) -> (),
+		handler: (headers: DispatchHeaders, payload: any) -> (),
 		connectionSettings: SignalConnection.ConnectionSettings?
 	) -> SignalConnection.InstancePublic,
+	dispatch: (self: any, payload: any) -> (),
+	dispatchWithHeaders: (self: any, headers: DispatchHeaders, payload: any) -> (),
 	getParent: (self: any) -> IP?,
 }
 
@@ -70,6 +72,12 @@ export type ClassFieldsPrivate = {
 export type ClassMethodsPublic = {
 	-- public static methods here
 	new: (parent: InstancePublic? | EventSettings?, eventSettings: EventSettings?) -> InstancePublic,
+	newWithInitialization: (
+		withInitialization: boolean,
+		parent: InstancePublic? | EventSettings?,
+		eventSettings: EventSettings?
+	) -> InstancePublic,
+	test: () -> (),
 }
 
 export type ClassMethodsPrivate = {
@@ -101,6 +109,11 @@ export type EventSettings = {
 	queueThrottledDispatches: boolean?,
 }
 
+export type DispatchHeaders = {
+	withPriority: number,
+	async: boolean,
+}
+
 local EventSignal = newClass({} :: InstancePublic, "EventSignal", Super) :: ClassInternal
 
 -- Private static fields
@@ -110,7 +123,7 @@ local EventSignal = newClass({} :: InstancePublic, "EventSignal", Super) :: Clas
 --
 
 -- Constructors
-function EventSignal.new(inputParent, inputEventSettings)
+function EventSignal.newWithInitialization(withInitialization, inputParent, inputEventSettings)
 	local readEventSettings: EventSettings = inputEventSettings or {}
 
 	-- Init public & private fields
@@ -131,7 +144,7 @@ function EventSignal.new(inputParent, inputEventSettings)
 
 	-- If inheriting:
 	local self = setmetatable((Super.new() :: any) :: InstanceInternal, EventSignal)
-	EventSignal:__init__(self)
+	EventSignal:__init__(self, withInitialization)
 	-- local self = setmetatable(_self :: InstanceInternal, EventSignal)
 
 	-- Assign private fields
@@ -146,6 +159,39 @@ function EventSignal.new(inputParent, inputEventSettings)
 
 	-- Return new instance
 	return self
+end
+
+function EventSignal.new(...)
+	return EventSignal.newWithInitialization(true, ...)
+end
+
+function EventSignal.test()
+	local e = EventSignal.new()
+
+	e:connect(function()
+		print("priority [0] - 1")
+	end)
+	e:connect(function()
+		print("priority [0] - 2")
+	end)
+	e:connect(function()
+		print("priority [1] - 1")
+	end, { priority = 1 })
+	e:connect(function()
+		print("priority [2] - 1")
+	end, { priority = 2 })
+	e:connect(function()
+		print("priority [1] - 2")
+	end, { priority = 1 })
+	e:connect(function()
+		print("priority [-1] - 1")
+	end, { priority = -1 }):destroy()
+	e:connect(function()
+		print("priority [3] - 1")
+	end, { priority = 3 })
+	e:connect(function()
+		print("priority [2] - 2")
+	end, { priority = 2 })
 end
 --
 
@@ -195,6 +241,10 @@ end
 
 function EventSignal.getParent(self: InstanceInternal)
 	return self._parent
+end
+
+function EventSignal.dispatchWithHeaders(self: InstanceInternal, headers: DispatchHeaders, payload: any)
+	local connections = self._connections
 end
 --
 

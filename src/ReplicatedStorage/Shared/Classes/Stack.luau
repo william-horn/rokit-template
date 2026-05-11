@@ -63,6 +63,7 @@ export type ClassFieldsPrivate = {
 export type ClassMethodsPublic = {
 	-- public static methods here
 	new: () -> InstancePublic,
+	newWithInitialization: (withInitialization: boolean) -> InstancePublic,
 }
 
 export type ClassMethodsPrivate = {
@@ -91,11 +92,11 @@ local Stack = newClass({} :: InstancePublic, "Stack", Super) :: ClassInternal
 --
 
 -- Constructors
-function Stack.new()
+function Stack.newWithInitialization(withInitialization)
 	-- If inheriting:
 	local self = setmetatable((Super.new() :: any) :: InstanceInternal, Stack)
 	-- local self = setmetatable(_self :: InstanceInternal, Stack)
-	Stack:__init__(self)
+	Stack:__init__(self, withInitialization)
 
 	-- Assign private fields
 	self._stack = {}
@@ -106,6 +107,10 @@ function Stack.new()
 
 	-- Return new instance
 	return self
+end
+
+function Stack.new()
+	return Stack.newWithInitialization(true)
 end
 --
 

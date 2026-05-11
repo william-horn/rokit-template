@@ -66,7 +66,9 @@ export type ClassFieldsPrivate = {
 
 export type ClassMethodsPublic = {
 	-- public static methods here
-	new: (connectionSettings: ConnectionSettings) -> InstancePublic,
+	new: (connectionSettings: ConnectionSettings?) -> InstancePublic,
+	newWithInitialization: (withInitialization: boolean, connectionSettings: ConnectionSettings?) -> InstancePublic,
+	test: () -> (),
 }
 
 export type ClassMethodsPrivate = {
@@ -101,14 +103,19 @@ local SignalConnection = newClass({} :: InstancePublic, "SignalConnection", Supe
 --
 
 -- Constructors
-function SignalConnection.new(connectionSettings)
+function SignalConnection.newWithInitialization(withInitialization, connectionSettings)
 	-- If inheriting:
 	local self = setmetatable((Super.new() :: any) :: InstanceInternal, SignalConnection)
 	-- local self = setmetatable(_self :: InstanceInternal, SignalConnection)
-	SignalConnection:__init__(self)
+	SignalConnection:__init__(self, withInitialization)
+
+	local readConnectionSettings = (connectionSettings or {}) :: ConnectionSettings
+	local finalConnectionSettings = {} :: ConnectionSettings
+
+	finalConnectionSettings.priority = readConnectionSettings.priority or 0
 
 	-- Assign private fields
-	self._settings = connectionSettings
+	self._settings = finalConnectionSettings
 	self._status = "listening"
 	--
 
@@ -117,6 +124,14 @@ function SignalConnection.new(connectionSettings)
 
 	-- Return new instance
 	return self
+end
+
+function SignalConnection.new(...)
+	return SignalConnection.newWithInitialization(true, ...)
+end
+
+function SignalConnection.test()
+	local o = SignalConnection.new()
 end
 --
 

@@ -64,7 +64,8 @@ export type ClassFieldsPrivate = {
 export type ClassMethodsPublic = {
 	-- public static methods here
 	new: () -> InstancePublic,
-	objectConstructor: () -> (),
+	newWithInitialization: (withInitialization: boolean) -> InstancePublic,
+	test: () -> (),
 }
 
 -- We pass a generic type "O" in case a class method accepts any instance parameters
@@ -91,11 +92,11 @@ local Object = newClass({} :: InstancePublic, "Object", Super) :: ClassInternal
 --
 
 -- Constructors
-function Object.new()
+function Object.newWithInitialization(withInitialization)
 	-- If inheriting:
 	-- local self = setmetatable((Super.new() :: any) :: InstanceInternal, Object)
 	local self = setmetatable({} :: InstanceInternal, Object)
-	Object:__init__(self)
+	Object:__init__(self, withInitialization)
 
 	-- Assign private fields
 	self._serialId = Object:getLifetimeInstanceCount()
@@ -107,6 +108,14 @@ function Object.new()
 
 	-- Return new instance
 	return self
+end
+
+function Object.new(...)
+	return Object.newWithInitialization(true, ...)
+end
+
+function Object.test()
+	local o = Object.new()
 end
 --
 
