@@ -11,7 +11,7 @@ local ValidationResult = require(script.Parent.ValidationResult)
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
 
-export type StateValidator = (state: any) -> ValidationResult.InstancePublic
+export type StateValidator = (state: any) -> ValidationReport.InstancePublic
 
 -- Non-static types
 export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
@@ -29,6 +29,7 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	getState: (self: any) -> any,
 	setState: (self: any, state: any) -> (),
 	useValidator: (self: any, validator: StateValidator) -> (),
+	validate: (self: any) -> ValidationReport.InstancePublic,
 }
 
 export type LocalInstanceMethodsPrivate<CI, II, SCI> = {
@@ -91,7 +92,7 @@ export type ClassInternal =
 local StateValidator = newClass({} :: InstancePublic, "StateValidator", Super) :: ClassInternal
 
 local defaultValidator: StateValidator = function(state)
-	return ValidationResult.new("passed")
+	return ValidationReport.new()
 end
 
 -- Private static fields
@@ -124,7 +125,45 @@ function StateValidator.new(state)
 end
 
 function StateValidator.test()
-	local o = StateValidator.new()
+	type Data = {
+		x: number,
+		y: number,
+	}
+
+	local value: Data = {
+		x = 100,
+		y = 200,
+	}
+
+	local o = StateValidator.new(value)
+
+	o:useValidator(function(state: Data)
+		local validationReport = ValidationReport.new():destroy()
+
+		if state.x > 99 then
+			validationReport:addResult(ValidationResult.new("failed", "too big"))
+		end
+
+		if state.y < 300 then
+			validationReport:addResult(ValidationResult.new("failed", "too small"))
+		end
+
+		if state.y == 200 then
+			validationReport:addResult(ValidationResult.new("passed", "just right!"))
+		end
+
+		return validationReport
+	end)
+
+	local v = o:validate()
+
+	if v:hasPassed() then
+		print("IT PASSED")
+		print(v:getResults())
+	else
+		print("IT FAILED")
+		print(v:getResults())
+	end
 end
 --
 
@@ -148,6 +187,10 @@ end
 
 function StateValidator.useValidator(self: InstanceInternal, validator)
 	self._stateValidator = validator
+end
+
+function StateValidator.validate(self: InstanceInternal)
+	return self._stateValidator(self._internalState)
 end
 --
 

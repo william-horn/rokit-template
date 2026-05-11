@@ -11,6 +11,8 @@ local Server = {}
 --[[
 Run all server start up processes
 ]]
-function Server:run() end
+function Server:run()
+	StateValidator.test()
+end
 
 return Server

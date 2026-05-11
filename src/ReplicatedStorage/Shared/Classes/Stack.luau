@@ -64,6 +64,7 @@ export type ClassMethodsPublic = {
 	-- public static methods here
 	new: () -> InstancePublic,
 	newWithInitialization: (withInitialization: boolean) -> InstancePublic,
+	test: () -> (),
 }
 
 export type ClassMethodsPrivate = {
@@ -111,6 +112,10 @@ end
 
 function Stack.new()
 	return Stack.newWithInitialization(true)
+end
+
+function Stack.test()
+	local o = Stack.new()
 end
 --
 

@@ -28,7 +28,7 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	toString: (self: any) -> string,
 	getId: (self: any) -> number,
 	getClassName: (self: any) -> string,
-	destroy: (self: any) -> (),
+	destroy: (self: any) -> IP,
 	isDestroyed: (self: any) -> boolean,
 	getClass: (self: any) -> CP,
 	getSuperClass: (self: any) -> SCP,
@@ -152,6 +152,8 @@ function Object.destroy(self: InstanceInternal)
 		class._activeInstances[self] = nil
 		_class = class:getSuperClass()
 	end
+
+	return self
 end
 
 function Object.isDestroyed(self: InstanceInternal)

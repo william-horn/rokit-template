@@ -21,12 +21,15 @@ export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
 export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	-- private instance fields here
 	_validationResults: ValidationReport,
+	_hasPassed: boolean,
 }
 
 export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	-- public instance methods here
 	addResult: (self: any, validationResult: ValidationResult.InstancePublic) -> (),
-	getReport: (self: any) -> ValidationReport,
+	getResults: (self: any) -> ValidationReport,
+	clear: (self: any) -> (),
+	hasPassed: (self: any) -> boolean,
 }
 
 export type LocalInstanceMethodsPrivate<CI, II, SCI> = {
@@ -102,6 +105,8 @@ function ValidationReport.newWithInitialization(withInitialization)
 	ValidationReport:__init__(self, withInitialization)
 
 	-- Assign private fields
+	self._hasPassed = true
+	self._validationResults = {}
 	--
 
 	-- Assign public fields
@@ -117,6 +122,21 @@ end
 
 function ValidationReport.test()
 	local o = ValidationReport.new()
+
+	o:addResult(ValidationResult.new("passed"))
+	o:addResult(ValidationResult.new("passed", "with flying colors"))
+	o:addResult(ValidationResult.new("warning", "uh oh"))
+
+	print("Result: ", o)
+	print(ValidationReport)
+	print(ValidationResult)
+
+	o:destroy()
+	task.wait(5)
+
+	print(ValidationReport)
+	print(o)
+	print(ValidationResult)
 end
 --
 
@@ -132,10 +152,31 @@ end
 -- Public instance methods
 function ValidationReport.addResult(self: InstanceInternal, validationResult)
 	self._validationResults[#self._validationResults + 1] = validationResult
+	if self._hasPassed and validationResult:hasFailed() then
+		self._hasPassed = false
+	end
 end
 
-function ValidationReport.getReport(self: InstanceInternal)
+function ValidationReport.getResults(self: InstanceInternal)
 	return self._validationResults
+end
+
+function ValidationReport.clear(self: InstanceInternal)
+	for index = 1, #self._validationResults do
+		self._validationResults[index]:destroy()
+		self._validationResults[index] = nil
+	end
+	self._hasPassed = true
+end
+
+function ValidationReport.hasPassed(self: InstanceInternal)
+	return self._hasPassed
+end
+
+function ValidationReport.destroy(self: InstanceInternal)
+	self._super.destroy(self)
+	self:clear()
+	return self
 end
 --
 
