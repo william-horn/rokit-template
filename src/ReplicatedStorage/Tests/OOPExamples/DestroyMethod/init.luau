@@ -10,6 +10,13 @@ function DestroyMethod:run()
 	local o = Object.new()
 	local p = Parent.new()
 	local c = Child.new()
+
+	o:destroy()
+	p:destroy()
+	c:destroy()
+
+	print("Object before GC:")
+	print(Object)
 end
 
 return DestroyMethod

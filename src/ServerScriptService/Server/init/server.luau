@@ -1,5 +1,6 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Object = require(ReplicatedStorage.Shared.Classes.Object)
 local EventSignalTest = require(ReplicatedStorage.Tests.Misc.EventSignalTest)
 local DestroyMethod = require(ReplicatedStorage.Tests.OOPExamples.DestroyMethod)
 -- local InheritanceChainV2 = require(ReplicatedStorage.Tests.OOPExamples.InheritanceChainV2)

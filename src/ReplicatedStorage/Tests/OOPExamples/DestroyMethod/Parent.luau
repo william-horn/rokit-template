@@ -16,7 +16,6 @@ export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
 
 export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	-- private instance fields here
-	-- _super: Super.ClassInternal, -- inheritance
 }
 
 export type LocalInstanceMethodsPublic<CP, IP, SCP> = {

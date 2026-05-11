@@ -98,7 +98,7 @@ function Object.new()
 	Object:__init__(self)
 
 	-- Assign private fields
-	self._serialId = Object:getActiveInstanceCount()
+	self._serialId = Object:getLifetimeInstanceCount()
 	self._isDestroyed = false
 	--
 

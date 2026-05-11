@@ -7,9 +7,12 @@ export type ClassTemplatePublic<IP, SCP> = {
 	getClassName: (class: any) -> string,
 	is: (class: any, obj: any) -> boolean,
 	getSuperClass: (class: any) -> SCP,
+	getLifetimeInstanceCount: (class: any) -> number,
 }
 
 export type ClassTemplatePrivate<IP, SCP> = {
+	_lifetimeInstanceCount: number,
+	_incrementLifetimeInstanceCount: (self: any) -> (),
 	_className: string,
 	_activeInstanceCount: number,
 	_activeInstances: Table.Map<IP, true>,
@@ -49,8 +52,17 @@ local function getSuperClass(class: AnyClassInternal)
 	return class._super
 end
 
+local function getLifetimeInstanceCount(class: AnyClassInternal)
+	return class._lifetimeInstanceCount
+end
+
+local function _incrementLifetimeInstanceCount(class: AnyClassInternal)
+	class._lifetimeInstanceCount += 1
+end
+
 local function __init__(class: AnyClassInternal, instance)
 	class:_incrementActiveInstanceCount()
+	class:_incrementLifetimeInstanceCount()
 
 	class._activeInstances[instance] = true
 	class._memorizedInstances[#class._memorizedInstances + 1] = instance
@@ -71,11 +83,13 @@ local function newClass<IP, _, SCP>(_: IP, className: string, superClass: SCP)
 	class._super = superClass
 	class._className = className
 	class._activeInstanceCount = 0
+	class._lifetimeInstanceCount = 0
 	class._activeInstances = {}
 	class._memorizedInstances = setmetatable({}, { __mode = "v" })
 
 	-- public methods
 	class.getActiveInstanceCount = getActiveInstanceCount
+	class.getLifetimeInstanceCount = getLifetimeInstanceCount
 	class.getClassName = getClassName
 	class.getSuperClass = getSuperClass
 	class.is = is
@@ -83,6 +97,7 @@ local function newClass<IP, _, SCP>(_: IP, className: string, superClass: SCP)
 	-- private methods
 	class._incrementActiveInstanceCount = _incrementActiveInstanceCount
 	class._decrementActiveInstanceCount = _decrementActiveInstanceCount
+	class._incrementLifetimeInstanceCount = _incrementLifetimeInstanceCount
 
 	-- default constructor
 	class.__init__ = __init__
