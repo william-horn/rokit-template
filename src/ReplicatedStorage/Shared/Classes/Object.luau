@@ -22,7 +22,6 @@ export type LocalInstanceFieldsPublic<CP, IP, SCP> = {}
 	PRIVATE Fields - Instance
 ]]
 export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
-	-- private instance fields here
 	_serialId: number,
 	_className: string,
 	_isDestroyed: boolean,
@@ -37,6 +36,13 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	--[[
 		Represents the instance as a string.
 
+		<b>Example:</b>
+
+		```luau
+		local o = Object.new()
+		print(o:toString()) --> "Object#000..."
+		```
+
 		@return `name` <<b>string</b>> The stringified representation of the object (not serialized)
 	]]
 	toString: (self: any) -> string,
@@ -46,12 +52,28 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		directly corresponds to the total lifetime instance count of every
 		Object subclass at the time of it's instantiation.
 
+		<b>Example:</b>
+
+		```luau
+		local o = Object.new()
+		print(o:getId()) --> 1
+		o = Object.new()
+		print(o:getId()) --> 2
+		```
+
 		@return `serialId` <<b>number</b>>
 	]]
 	getId: (self: any) -> number,
 
 	--[[
 		Get the class name of the object.
+
+		<b>Example:</b>
+
+		```luau
+		local o = Object.new()
+		print(o:getClassName()) --> "Object"
+		```
 
 		@return `className` <<b>string</b>> The class name of the object.
 	]]
@@ -63,9 +85,10 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		destroyed, but once all references to the object are gone, it will
 		be eligible for garbage collection.
 
+		<b>Example:</b>
+
 		```luau
 		local o = Object.new()
-
 		print(o:getActiveInstanceCount()) --> 1
 		o:destroy()
 		print(o:getActiveInstanceCount()) --> 0
@@ -78,9 +101,10 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	--[[
 		Determines whether the object has already been destroyed or not.
 
+		<b>Example:</b>
+
 		```luau
 		local o = Object.new()
-
 		print(o:isDestroyed()) --> false
 		o:destroy()
 		print(o:isDestroyed()) --> true
@@ -93,8 +117,14 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	--[[
 		Get the actual `Class` reference of an object.
 
+		<b>Example:</b>
+
 		```luau
-		Object.new():getClass().new()
+		local o = Object.new()
+		print(Object:getActiveInstanceCount()) --> 1
+
+		local o_class = o:getClass()
+		o_class.new()
 		print(Object:getActiveInstanceCount()) --> 2
 		```
 		
@@ -105,6 +135,14 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	--[[
 		Get the super class reference to the object.
 
+		<b>Example:</b>
+
+		```luau
+		local toyota = Toyota.new()
+		local super = toyota:getSuperClass()
+		print(super:getClassName()) --> "Car"
+		```
+
 		@return `super` <<b>Class</b>> The super class of the object.
 	]]
 	getSuperClass: (self: any) -> SCP,
@@ -114,7 +152,21 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	PRIVATE Methods - Instance
 ]]
 export type LocalInstanceMethodsPrivate<CI, II, SCI> = {
-	-- private instance methods
+	--[[
+		Same as public `getClass()` method, except it returns the
+		object's class with the internal class interface.
+
+		<b>Example</b>
+
+		```luau
+		-- somewhere inside the class file
+		local _o = self:_getClass()
+		print(o._className) --> [some string]
+		print(o._serialId) --> [some number]
+		```
+
+		@return `Class` <<b>Class</b>> The object's class with the internal class interface.
+	]]
 	_getClass: (self: any) -> CI,
 }
 
@@ -151,9 +203,19 @@ export type ClassFieldsPrivate = {}
 ]]
 export type ClassMethodsPublic = {
 	--[[
-		Create a new initialized instance of this class
+		Create a new initialized instance of this class. This
+		constructor is exactly identical to calling `newWithInitialization(true)`
 
-		@return `NewClass` <<b>NewClass Instance</b>>
+		<b>Example:</b>
+
+		```luau
+		-- this
+		local o = Object.new()
+		-- is the same as
+		o = Object.newWithInitialization(true)
+		```
+
+		@return `Object` <<b>Object Instance</b>>
 	]]
 	new: () -> InstancePublic,
 
@@ -163,7 +225,23 @@ export type ClassMethodsPublic = {
 		must be initialized manually to define the missing class
 		fields: `_class`, `_className`, `_super`.
 
-		@return `NewClass` <<b>NewClass Instance</b>>
+		With no initialization, the object will also not be stored
+		internally, and thus will not add to the `_activeInstanceCount`
+		field internally.
+
+		<b>Example:</b>
+
+		```luau
+		local o = Object.newWithInitialization(true)
+		print(o:getClassName()) --> "Object"
+		print(Object:getActiveInstanceCount()) --> 1
+
+		o = Object.newWithInitialization(false)
+		print(o:getClassName()) --> nil
+		print(Object:getActiveInstanceCount()) --> 1
+		```
+
+		@return `Object` <<b>Object Instance</b>>
 	]]
 	newWithInitialization: (withInitialization: boolean) -> InstancePublic,
 

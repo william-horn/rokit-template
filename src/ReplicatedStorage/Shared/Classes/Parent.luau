@@ -24,7 +24,9 @@ export type LocalInstanceFieldsPrivate<CI, II, SCI> = {}
 --[[
 	PUBLIC Methods - Instance
 ]]
-export type LocalInstanceMethodsPublic<CP, IP, SCP> = {}
+export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
+	parentMethod: () -> (),
+}
 
 --[[
 	PRIVATE Methods - Instance
@@ -77,12 +79,12 @@ export type ClassMethodsPublic = {
 
 		```luau
 		-- this
-		local o = NewClass.new()
+		local o = Parent.new()
 		-- is the same as
-		o = NewClass.newWithInitialization(true)
+		o = Parent.newWithInitialization(true)
 		```
 
-		@return `NewClass` <<b>NewClass Instance</b>>
+		@return `Parent` <<b>Parent Instance</b>>
 	]]
 	new: () -> InstancePublic,
 
@@ -99,16 +101,16 @@ export type ClassMethodsPublic = {
 		<b>Example:</b>
 
 		```luau
-		local o = NewClass.newWithInitialization(true)
-		print(o:getClassName()) --> "NewClass"
-		print(NewClass:getActiveInstanceCount()) --> 1
+		local o = Parent.newWithInitialization(true)
+		print(o:getClassName()) --> "Parent"
+		print(Parent:getActiveInstanceCount()) --> 1
 
-		o = NewClass.newWithInitialization(false)
+		o = Parent.newWithInitialization(false)
 		print(o:getClassName()) --> nil
-		print(NewClass:getActiveInstanceCount()) --> 1
+		print(Parent:getActiveInstanceCount()) --> 1
 		```
 
-		@return `NewClass` <<b>NewClass Instance</b>>
+		@return `Parent` <<b>Parent Instance</b>>
 	]]
 	newWithInitialization: (withInitialization: boolean) -> InstancePublic,
 
@@ -144,20 +146,20 @@ export type ClassInternal =
 --[[
 	Class definition
 ]]
-local NewClass = newClass({} :: InstancePublic, "NewClass", Super) :: ClassInternal
+local Parent = newClass({} :: InstancePublic, "Parent", Super) :: ClassInternal
 
 --[[
 	PUBLIC Static Fields - Class
 
 	Public fields that are assigned directly on the class object, such
-	as `NewClass.foo = "bar"` for example.
+	as `Parent.foo = "bar"` for example.
 ]]
 
 --[[
 	PRIVATE Static Fields - Class
 
 	Private fields that are assigned directly on the class object, such
-	as `NewClass._foo = "bar"` for example. All private fields are prefaced
+	as `Parent._foo = "bar"` for example. All private fields are prefaced
 	with an underscore `_` as convention.
 ]]
 
@@ -166,9 +168,9 @@ local NewClass = newClass({} :: InstancePublic, "NewClass", Super) :: ClassInter
 
 	Class constructors - responsible for creating class instances
 ]]
-function NewClass.newWithInitialization(withInitialization)
-	local self = setmetatable((Super.new() :: any) :: InstanceInternal, NewClass)
-	NewClass:__init__(self, withInitialization)
+function Parent.newWithInitialization(withInitialization)
+	local self = setmetatable((Super.new() :: any) :: InstanceInternal, Parent)
+	Parent:__init__(self, withInitialization)
 
 	--[[
 		PRIVATE Fields - Instance
@@ -182,8 +184,8 @@ function NewClass.newWithInitialization(withInitialization)
 	return self
 end
 
-function NewClass.new(...)
-	return NewClass.newWithInitialization(true, ...)
+function Parent.new(...)
+	return Parent.newWithInitialization(true, ...)
 end
 
 --[[
@@ -208,7 +210,7 @@ end
 	A class-level function which contains optional or temporary 
 	test-code, ideally for testing class features.
 ]]
-function NewClass.test() end
+function Parent.test() end
 
 -- Export the final class with a public interface
-return NewClass :: ClassPublic
+return Parent :: ClassPublic

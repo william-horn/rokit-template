@@ -17,7 +17,7 @@ export type ConnectionSettings<T = never> = {
 	priority: number | T,
 }
 
-export type ConnectionStatus = "dead" | "listening"
+export type ConnectionStatus = "dead" | "listening" | "paused"
 
 --[[
 	PUBLIC Fields - Instance
@@ -41,13 +41,15 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		Get the initial settings of the `SignalConnection` that
 		was passed during instantiation
 
+		<b>Example:</b>
+
 		```luau
 		local connection = SignalConnection.new(
 			function(...) end,
 			{ priority = 3 }
 		)
 
-		print(connection:getSettings()) --> { priority = 3 }
+		print(connection:getSettings()) --> { ..., priority = 3 }
 		```
 
 		@return `connectionSettings` <<b>ConnectionSettings</b>> The connection settings table
@@ -58,6 +60,13 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		Gets the dispatch priority of the `SignalConnection`. Priority
 		represents which order SignalConnections are fired in.
 
+		<b>Example:</b>
+
+		```luau
+		local conn = SignalConnection.new(f, { priority = 1 })
+		print(conn:getPriority()) --> 1
+		```
+
 		@return `priority` <<b>number</b>> The `SignalConnection`'s priority.
 	]]
 	getPriority: (self: any) -> number,
@@ -66,12 +75,104 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		Determines whether or not the `SignalConnection` is currently active
 		and listening for dispatches.
 
+		<b>Example</b>
+
+		```luau
+		local conn = SignalConnection.new(f)
+		print(conn:isListening()) --> true
+		conn:disconnect()
+		print(conn:isListening()) --> false
+		```
+
 		@return `isListening` <<b>boolean</b>> `true` if the `SignalConnection` is active, otherwise `false`.
 	]]
 	isListening: (self: any) -> boolean,
+
+	--[[
+		Determines whether the `SignalConnection` is currently dead
+		and no longer listening to dispatches.
+
+		<b>Example:</b>
+
+		```luau
+		local conn = SignalConnection.new(f)
+		print(conn:isDead()) --> false
+		conn:disconnect()
+		print(conn:isDead()) --> true
+		```
+
+		@return `isDead` <<b>boolean</b>> `true` if the `SignalConnection` has been disconnected, otherwise `false`.
+	]]
 	isDead: (self: any) -> boolean,
+
+	--[[
+		Determines whether the `SignalConnection` is currently alive, meaning
+		any state but "dead".
+
+		<b>Example:</b>
+
+		```luau
+		local conn = SignalConnection.new(f)
+		print(conn:isAlive()) --> true
+		conn:setStatus("paused")
+		print(conn:isAlive()) --> true
+		conn:disconnect()
+		print(conn:isAlive()) --> false
+		```
+
+		@return `isAlive` <<b>boolean</b>> `true` if the `SignalConnection` is not dead, otherwise `false`.
+	]]
 	isAlive: (self: any) -> boolean,
+
+	--[[
+		Determines whether the `SignalConnection` is currently paused. Paused
+		connections will not execute, but they are not dead, and can be resumed
+		later.
+
+		<b>Example:</b>
+
+		```luau
+		local conn = SignalConnection.new(f)
+		conn:setStatus("paused")
+		print(conn:isPaused()) --> true
+		```
+
+		@return `isPaused` <<b>boolean</b>> `true` if the `SignalConnection` is paused, otherwise `false`.
+	]]
+	isPaused: (self: any) -> boolean,
+
+	--[[
+		Sets the status of the `SignalConnection` instance. So far, the
+		only status options are `dead`, `listening`, and `paused`.
+
+		<b>Example:</b>
+
+		```luau
+		local conn = SignalConnection.new(f)
+		conn:setStatus("paused")
+		print(conn:getStatus()) --> "paused"
+		```
+	]]
+	setStatus: (self: any, status: ConnectionStatus) -> (),
+
+	--[[
+		Gets the status of the `SignalConnection` instance. So far, the
+		only status options are `dead`, `listening`, and `paused`.
+
+		<b>Example:</b>
+
+		```luau
+		local conn = SignalConnection.new(f)
+		print(conn:getStatus()) --> "listening"
+		```
+
+		@return `status` <<b>string</b>> The status of the `SignalConnection` instance.
+	]]
 	getStatus: (self: any) -> ConnectionStatus,
+
+	--[[
+	
+	]]
 	runHandler: (self: any, ...any) -> (),
 	disconnect: (self: any) -> (),
 	runHandlerWithValidation: (self: any, validationSettings: any) -> (),
@@ -218,7 +319,7 @@ function SignalConnection.newWithInitialization(withInitialization, handler, con
 		priority = 0,
 	}
 
-	self._status = "listening"
+	self:setStatus("listening")
 	self._handler = handler
 
 	if connectionSettings ~= nil then
@@ -262,8 +363,12 @@ function SignalConnection.getPriority(self: InstanceInternal)
 end
 
 function SignalConnection.disconnect(self: InstanceInternal)
-	self._status = "dead"
+	self:setStatus("dead")
 	self:destroy()
+end
+
+function SignalConnection.setStatus(self: InstanceInternal, status)
+	self._status = status
 end
 
 function SignalConnection.getStatus(self: InstanceInternal)
@@ -272,6 +377,10 @@ end
 
 function SignalConnection.isListening(self: InstanceInternal)
 	return self:getStatus() == "listening"
+end
+
+function SignalConnection.isPaused(self: InstanceInternal)
+	return self:getStatus() == "paused"
 end
 
 function SignalConnection.isDead(self: InstanceInternal)
