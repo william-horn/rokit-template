@@ -1,9 +1,11 @@
 --!strict
 --[[
-	@author: William J. Horn
-	@written: 10/20/2025
+	@author William J. Horn (ScriptGuider@ROBLOX.com)
+	@written 5/12/2026
 
-	NewClass class
+	A template file for creating a new class.
+	
+	If you have any questions, email williamjosephhorn@gmail.com
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
@@ -67,8 +69,26 @@ export type ClassFieldsPrivate = {}
 	PUBLIC Static Methods - Class
 ]]
 export type ClassMethodsPublic = {
+	--[[
+		Create a new initialized instance of this class
+
+		@return `NewClass` <<b>NewClass Instance</b>>
+	]]
 	new: () -> InstancePublic,
+
+	--[[
+		Create a new instance of this class with the option of 
+		being initialized. If the instance is not initialized, it
+		must be initialized manually to define the missing class
+		fields: `_class`, `_className`, `_super`.
+
+		@return `NewClass` <<b>NewClass Instance</b>>
+	]]
 	newWithInitialization: (withInitialization: boolean) -> InstancePublic,
+
+	--[[
+		A test method to write temporary test code for the class.
+	]]
 	test: () -> (),
 }
 

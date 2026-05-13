@@ -2,6 +2,8 @@
 --[[
 	@author William J. Horn (ScriptGuider@ROBLOX.com)
 	@written 5/12/2026
+
+	If you have any questions, email williamjosephhorn@gmail.com
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Table = require(ReplicatedStorage.Shared.Types.Table)

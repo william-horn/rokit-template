@@ -1,9 +1,9 @@
 --!strict
 --[[
-	@author: William J. Horn
-	@written: 10/20/2025
-
-	SignalConnection class
+	@author William J. Horn (ScriptGuider@ROBLOX.com)
+	@written 5/12/2026
+	
+	If you have any questions, email williamjosephhorn@gmail.com
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
@@ -37,8 +37,37 @@ export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	PUBLIC Methods - Instance
 ]]
 export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
+	--[[
+		Get the initial settings of the `SignalConnection` that
+		was passed during instantiation
+
+		```luau
+		local connection = SignalConnection.new(
+			function(...) end,
+			{ priority = 3 }
+		)
+
+		print(connection:getSettings()) --> { priority = 3 }
+		```
+
+		@return `connectionSettings` <<b>ConnectionSettings</b>> The connection settings table
+	]]
 	getSettings: (self: any) -> ConnectionSettings,
+
+	--[[
+		Gets the dispatch priority of the `SignalConnection`. Priority
+		represents which order SignalConnections are fired in.
+
+		@return `priority` <<b>number</b>> The `SignalConnection`'s priority.
+	]]
 	getPriority: (self: any) -> number,
+
+	--[[
+		Determines whether or not the `SignalConnection` is currently active
+		and listening for dispatches.
+
+		@return `isListening` <<b>boolean</b>> `true` if the `SignalConnection` is active, otherwise `false`.
+	]]
 	isListening: (self: any) -> boolean,
 	isDead: (self: any) -> boolean,
 	isAlive: (self: any) -> boolean,
@@ -91,22 +120,49 @@ export type ClassFieldsPrivate = {}
 	PUBLIC Static Methods - Class
 ]]
 export type ClassMethodsPublic = {
-	-- public static methods here
+	--[[
+		Create a new initialized instance of this class
+
+		@param handler <<b>function</b>> A callback function to be executed when the SignalConnection is fired.
+		@param connectionSettings <<b>ConnectionSettings</b>> A table of settings to modify connection signal behavior.
+
+		```luau
+		local connection = SignalConnection.new(
+			function(...)
+				print(...) 
+			end, 
+			{ priority = 1 }
+		)
+		```
+
+		@return `SignalConnection` <<b>SignalConnection Instance</b>>
+	]]
 	new: (handler: (...any) -> (), connectionSettings: ConnectionSettings<nil>?) -> InstancePublic,
+
+	--[[
+		Create a new instance of this class with the option of 
+		being initialized. If the instance is not initialized, it
+		must be initialized manually to define the missing class
+		fields: `_class`, `_className`, `_super`.
+
+		@return `SignalConnection` <<b>SignalConnection Instance</b>>
+	]]
 	newWithInitialization: (
 		withInitialization: boolean,
 		handler: (...any) -> (),
 		connectionSettings: ConnectionSettings<nil>?
 	) -> InstancePublic,
+
+	--[[
+		A test method to write temporary test code for the class.
+	]]
 	test: () -> (),
 }
 
 --[[
 	PRIVATE Static Methods - Class
 ]]
-export type ClassMethodsPrivate = {
-	-- private static methods here
-}
+export type ClassMethodsPrivate = {}
 
 --[[
 	Type intersections for combining all static definitions into
