@@ -9,23 +9,30 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
 
--- Non-static types
-export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
-	-- public instance fields here
-}
+--[[
+	PUBLIC Fields - Instance
+]]
+export type LocalInstanceFieldsPublic<CP, IP, SCP> = {}
 
-export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
-	-- private instance fields here
-}
+--[[
+	PRIVATE Fields - Instance
+]]
+export type LocalInstanceFieldsPrivate<CI, II, SCI> = {}
 
-export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
-	-- public instance methods here
-}
+--[[
+	PUBLIC Methods - Instance
+]]
+export type LocalInstanceMethodsPublic<CP, IP, SCP> = {}
 
-export type LocalInstanceMethodsPrivate<CI, II, SCI> = {
-	-- private instance methods
-}
+--[[
+	PRIVATE Methods - Instance
+]]
+export type LocalInstanceMethodsPrivate<CI, II, SCI> = {}
 
+--[[
+	Type inheritance intersections between local instance-interface
+	definitions and superclass-instance definitions.
+]]
 export type InstanceFieldsPublic<CP, IP, SCP> =
 	LocalInstanceFieldsPublic<CP, IP, SCP>
 	& Super.InstanceFieldsPublic<CP, IP, SCP>
@@ -46,26 +53,35 @@ export type InstanceInternal =
 	& InstanceFieldsPrivate<ClassInternal, InstanceInternal, Super.ClassInternal>
 	& InstanceMethodsPrivate<ClassInternal, InstanceInternal, Super.ClassInternal>
 
--- Static types
-export type ClassFieldsPublic = {
-	-- public static fields here
-}
+--[[
+	PUBLIC Static Fields - Class
+]]
+export type ClassFieldsPublic = {}
 
-export type ClassFieldsPrivate = {
-	-- private static fields here
-}
+--[[
+	PRIVATE Static Fields - Class
+]]
+export type ClassFieldsPrivate = {}
 
+--[[
+	PUBLIC Static Methods - Class
+]]
 export type ClassMethodsPublic = {
-	-- public static methods here
 	new: () -> InstancePublic,
 	newWithInitialization: (withInitialization: boolean) -> InstancePublic,
 	test: () -> (),
 }
 
-export type ClassMethodsPrivate = {
-	-- private static methods here
-}
+--[[
+	PRIVATE Static Methods - Class
+]]
+export type ClassMethodsPrivate = {}
 
+--[[
+	Type intersections for combining all static definitions into
+	a single class interface. One for internal use, and one for
+	exported external use.
+]]
 export type ClassPublic =
 	ClassFieldsPublic
 	& ClassMethodsPublic
@@ -79,26 +95,42 @@ export type ClassInternal =
 	& InstanceMethodsPublic<ClassPublic, InstancePublic, Super.ClassPublic>
 	& newClass.ClassTemplatePrivate<InstancePublic, Super.ClassPublic>
 
+--[[
+	Class definition
+]]
 local NewClass = newClass({} :: InstancePublic, "NewClass", Super) :: ClassInternal
 
--- Private static fields
---
+--[[
+	PUBLIC Static Fields - Class
 
--- Public static fields
---
+	Public fields that are assigned directly on the class object, such
+	as `NewClass.foo = "bar"` for example.
+]]
 
--- Constructors
+--[[
+	PRIVATE Static Fields - Class
+
+	Private fields that are assigned directly on the class object, such
+	as `NewClass._foo = "bar"` for example. All private fields are prefaced
+	with an underscore `_` as convention.
+]]
+
+--[[
+	CONSTRUCTORS
+
+	Class constructors - responsible for creating class instances
+]]
 function NewClass.newWithInitialization(withInitialization)
-	-- If inheriting:
 	local self = setmetatable((Super.new() :: any) :: InstanceInternal, NewClass)
-	-- local self = setmetatable(_self :: InstanceInternal, NewClass)
 	NewClass:__init__(self, withInitialization)
 
-	-- Assign private fields
-	--
+	--[[
+		PRIVATE Fields - Instance
+	]]
 
-	-- Assign public fields
-	--
+	--[[
+		PUBLIC Fields - Instance
+	]]
 
 	-- Return new instance
 	return self
@@ -108,21 +140,29 @@ function NewClass.new(...)
 	return NewClass.newWithInitialization(true, ...)
 end
 
-function NewClass.test()
-	local o = NewClass.new()
-end
---
+--[[
+	PUBLIC Static Methods - Class
+]]
 
--- Public static methods
---
+--[[
+	PRIVATE Static Methods - Class
+]]
 
--- Private static methods
---
+--[[
+	PUBLIC Methods - Instance
+]]
 
--- Private instance methods
---
+--[[
+	PRIVATE Methods - Instance
+]]
 
--- Public instance methods
---
+--[[
+	TEST CODE:
 
+	A class-level function which contains optional or temporary 
+	test-code, ideally for testing class features.
+]]
+function NewClass.test() end
+
+-- Export the final class with a public interface
 return NewClass :: ClassPublic

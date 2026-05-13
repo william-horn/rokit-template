@@ -7,39 +7,85 @@
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SignalConnection = require(script.Parent.SignalConnection)
+local StateValidator = require(script.Parent.StateValidator)
+local ValidationReport = require(script.Parent.ValidationReport)
+local ValidationResult = require(script.Parent.ValidationResult)
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
 local Table = require(ReplicatedStorage.Shared.Types.Table)
+local mergeTables = require(ReplicatedStorage.Shared.Util.Table.mergeTables)
 
--- Non-static types
-export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
-	-- public instance fields here
+--[[
+	Class-specific type definitions
+
+	`T = never` allows the interface to switch it's fields to becoming
+	optional, via the `value | T` disjunction. `never` indicates that 
+	no alternative type is used.
+]]
+export type EventSettings<T = never> = {
+	dispatchLimit: number | T,
+	dispatchInterval: number | T,
+
+	throttleLimit: number | T,
+	throttleDuration: number | T,
+	throttleResetInterval: number | T,
+
+	queueThrottledDispatches: boolean | T,
 }
 
+export type EventAnalytics = {
+	dispatches: {
+		successful: number,
+		failed: number,
+		total: number,
+	},
+}
+
+export type DispatchHeaders = {
+	withPriority: number,
+	async: boolean,
+}
+
+--[[
+	PUBLIC Fields - Instance
+]]
+export type LocalInstanceFieldsPublic<CP, IP, SCP> = {}
+
+--[[
+	PRIVATE Fields - Instance
+]]
 export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
-	-- private instance fields here
 	_parent: II?,
 	_propagating: boolean,
 	_connections: typeof(setmetatable({} :: Table.ArrayOf<SignalConnection.InstancePublic>, { __mode = "v" })),
 	_eventSettings: EventSettings,
+	_eventAnalytics: EventAnalytics,
+	_eventSettingsValidator: StateValidator.InstancePublic,
 }
 
+--[[
+	PUBLIC Methods - Instance
+]]
 export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
-	-- public instance methods here
 	connect: (
 		self: any,
-		handler: (headers: DispatchHeaders, payload: any) -> (),
-		connectionSettings: SignalConnection.ConnectionSettings?
+		handler: (headers: DispatchHeaders, event: IP, payload: any) -> (),
+		connectionSettings: SignalConnection.ConnectionSettings<nil>?
 	) -> SignalConnection.InstancePublic,
 	dispatch: (self: any, payload: any) -> (),
-	dispatchWithHeaders: (self: any, headers: DispatchHeaders, payload: any) -> (),
+	dispatchWithHeaders: (self: any, headers: DispatchHeaders, event: IP, payload: any) -> (),
 	getParent: (self: any) -> IP?,
 }
 
-export type LocalInstanceMethodsPrivate<CI, II, SCI> = {
-	-- private instance methods
-}
+--[[
+	PRIVATE Methods - Instance
+]]
+export type LocalInstanceMethodsPrivate<CI, II, SCI> = {}
 
+--[[
+	Type inheritance intersections between local instance-interface
+	definitions and superclass-instance definitions.
+]]
 export type InstanceFieldsPublic<CP, IP, SCP> =
 	LocalInstanceFieldsPublic<CP, IP, SCP>
 	& Super.InstanceFieldsPublic<CP, IP, SCP>
@@ -60,30 +106,39 @@ export type InstanceInternal =
 	& InstanceFieldsPrivate<ClassInternal, InstanceInternal, Super.ClassInternal>
 	& InstanceMethodsPrivate<ClassInternal, InstanceInternal, Super.ClassInternal>
 
--- Static types
-export type ClassFieldsPublic = {
-	-- public static fields here
-}
+--[[
+	PUBLIC Static Fields - Class
+]]
+export type ClassFieldsPublic = {}
 
-export type ClassFieldsPrivate = {
-	-- private static fields here
-}
+--[[
+	PRIVATE Static Fields - Class
+]]
+export type ClassFieldsPrivate = {}
 
+--[[
+	PUBLIC Static Methods - Class
+]]
 export type ClassMethodsPublic = {
-	-- public static methods here
-	new: (parent: InstancePublic? | EventSettings?, eventSettings: EventSettings?) -> InstancePublic,
+	new: (parent: InstancePublic? | EventSettings<nil>?, eventSettings: EventSettings<nil>?) -> InstancePublic,
 	newWithInitialization: (
 		withInitialization: boolean,
-		parent: InstancePublic? | EventSettings?,
-		eventSettings: EventSettings?
+		parent: InstancePublic? | EventSettings<nil>?,
+		eventSettings: EventSettings<nil>?
 	) -> InstancePublic,
 	test: () -> (),
 }
 
-export type ClassMethodsPrivate = {
-	-- private static methods here
-}
+--[[
+	PRIVATE Static Methods - Class
+]]
+export type ClassMethodsPrivate = {}
 
+--[[
+	Type intersections for combining all static definitions into
+	a single class interface. One for internal use, and one for
+	exported external use.
+]]
 export type ClassPublic =
 	ClassFieldsPublic
 	& ClassMethodsPublic
@@ -97,65 +152,80 @@ export type ClassInternal =
 	& InstanceMethodsPublic<ClassPublic, InstancePublic, Super.ClassPublic>
 	& newClass.ClassTemplatePrivate<InstancePublic, Super.ClassPublic>
 
--- EventSignal interfaces --
-export type EventSettings = {
-	dispatchLimit: number?,
-	dispatchInterval: number?,
-
-	throttleLimit: number?,
-	throttleDuration: number?,
-	throttleResetInterval: number?,
-
-	queueThrottledDispatches: boolean?,
-}
-
-export type DispatchHeaders = {
-	withPriority: number,
-	async: boolean,
-}
-
+--[[
+	Class definition
+]]
 local EventSignal = newClass({} :: InstancePublic, "EventSignal", Super) :: ClassInternal
 
--- Private static fields
---
+--[[
+	PUBLIC Static Fields - Class
 
--- Public static fields
---
+	Public fields that are assigned directly on the class object, such
+	as `NewClass.foo = "bar"` for example.
+]]
 
--- Constructors
-function EventSignal.newWithInitialization(withInitialization, inputParent, inputEventSettings)
-	local readEventSettings: EventSettings = inputEventSettings or {}
+--[[
+	PRIVATE Static Fields - Class
 
-	-- Init public & private fields
-	local hasParent = EventSignal:is(inputParent)
-	local parent: InstancePublic? = inputParent :: InstancePublic?
-	local eventSettings: EventSettings = {}
+	Private fields that are assigned directly on the class object, such
+	as `NewClass._foo = "bar"` for example. All private fields are prefaced
+	with an underscore `_` as convention.
+]]
 
-	if inputParent ~= nil and hasParent == false then
-		readEventSettings = inputParent :: EventSettings
-		parent = nil
-	end
+--[[
+	CONSTRUCTORS
 
-	eventSettings.dispatchInterval = readEventSettings.dispatchInterval or 0
-	eventSettings.dispatchLimit = readEventSettings.dispatchLimit or 0
-	eventSettings.throttleLimit = readEventSettings.throttleLimit or 0
-	eventSettings.throttleDuration = readEventSettings.throttleDuration or 0
-	eventSettings.throttleResetInterval = readEventSettings.throttleResetInterval or 0
-
-	-- If inheriting:
+	Class constructors - responsible for creating class instances
+]]
+function EventSignal.newWithInitialization(withInitialization, parent, eventSettings)
 	local self = setmetatable((Super.new() :: any) :: InstanceInternal, EventSignal)
 	EventSignal:__init__(self, withInitialization)
-	-- local self = setmetatable(_self :: InstanceInternal, EventSignal)
 
-	-- Assign private fields
-	self._parent = parent :: InstanceInternal
-	self._eventSettings = eventSettings
+	--[[
+		PRIVATE Fields - Instance
+	]]
 	self._connections = setmetatable({}, { __mode = "v" })
 	self._propagating = false
-	--
 
-	-- Assign public fields
-	--
+	self._eventSettings = {
+		dispatchInterval = 0,
+		dispatchLimit = 0,
+
+		throttleDuration = 0,
+		throttleLimit = 0,
+		throttleResetInterval = 0,
+
+		queueThrottledDispatches = false,
+	}
+
+	self._eventAnalytics = {
+		dispatches = {
+			successful = 0,
+			failed = 0,
+			total = 0,
+		},
+	}
+
+	--[[
+		Assign correct parameter values based on order they
+		were received in.
+	]]
+	do
+		local parentIsParent = EventSignal:is(parent)
+
+		if parent ~= nil and not parentIsParent then
+			mergeTables(self._eventSettings, parent)
+		elseif eventSettings ~= nil then
+			mergeTables(self._eventSettings, eventSettings)
+		end
+	end
+
+	self._parent = parent :: InstanceInternal?
+	self._eventSettingsValidator = StateValidator.new(self._eventSettings, self)
+
+	--[[
+		PUBLIC Fields - Instance
+	]]
 
 	-- Return new instance
 	return self
@@ -165,8 +235,90 @@ function EventSignal.new(...)
 	return EventSignal.newWithInitialization(true, ...)
 end
 
+-- Public static methods
+--
+
+-- Private static methods
+--
+
+-- Private instance methods
+--
+
+-- Public instance methods
+function EventSignal.connect(self: InstanceInternal, handler, connectionSettings)
+	local signalConnection = SignalConnection.new(handler, connectionSettings)
+	local connectionCount = #self._connections
+
+	-- special case placement for connection signals
+	if connectionCount == 0 then
+		self._connections[1] = signalConnection
+		return signalConnection
+	elseif signalConnection:getPriority() < 0 then
+		self._connections[connectionCount + 1] = signalConnection
+		return signalConnection
+	end
+
+	-- insert connection signal in event connections in order of given priority
+	for index = 1, connectionCount do
+		local connection = self._connections[index]
+
+		if
+			connection:isAlive() and signalConnection:getPriority() <= connection:getPriority()
+			or connection:getPriority() < 0
+		then
+			-- type solver bug: can't insert into a metatable; have to force cast
+			table.insert(self._connections :: any, index, signalConnection)
+			return signalConnection
+		end
+	end
+
+	self._connections[connectionCount + 1] = signalConnection
+	return signalConnection
+end
+
+function EventSignal.getParent(self: InstanceInternal)
+	return self._parent
+end
+
+function EventSignal.dispatchWithHeaders(self: InstanceInternal, headers, payload)
+	local connections = self._connections
+
+	local eventValidator = self._eventSettingsValidator
+	local eventValidationReport = eventValidator:validate()
+
+	if eventValidationReport:hasFailed() then
+		return eventValidationReport
+	end
+
+	for index = #connections, 1, -1 do
+		local connection = connections[index]
+		connection:runHandler(self, payload)
+	end
+
+	return eventValidationReport
+end
+
+function EventSignal.dispatch(self: InstanceInternal, payload)
+	return self:dispatchWithHeaders({
+		withPriority = 0,
+		async = false,
+	}, payload)
+end
+
+--[[
+	TEST CODE:
+
+	A class-level function which contains optional or temporary 
+	test-code, ideally for testing class features.
+]]
 function EventSignal.test()
-	local e = EventSignal.new()
+	local e = EventSignal.new({
+		dispatchLimit = 1,
+	})
+
+	e:connect(function(headers, event, payload)
+		print("Fired: ", event)
+	end)
 
 	e:connect(function()
 		print("priority [0] - 1")
@@ -192,60 +344,9 @@ function EventSignal.test()
 	e:connect(function()
 		print("priority [2] - 2")
 	end, { priority = 2 })
-end
---
 
--- Public static methods
---
-
--- Private static methods
---
-
--- Private instance methods
---
-
--- Public instance methods
-function EventSignal.connect(self: InstanceInternal, handler, inputConnectionSettings)
-	local readConnectionSettings = (inputConnectionSettings or {}) :: SignalConnection.ConnectionSettings
-	local connectionSettings = {} :: SignalConnection.ConnectionSettings
-
-	connectionSettings.priority = readConnectionSettings.priority or 0
-
-	local signalConnection = SignalConnection.new(connectionSettings)
-	local connectionCount = #self._connections
-
-	if connectionCount == 0 then
-		self._connections[1] = signalConnection
-		return signalConnection
-	elseif connectionSettings.priority < 0 then
-		self._connections[connectionCount + 1] = signalConnection
-		return signalConnection
-	end
-
-	for index = 1, connectionCount do
-		local connection = self._connections[index]
-
-		if
-			connection:isAlive() and connectionSettings.priority < connection:getPriority()
-			or connection:getPriority() < 0
-		then
-			-- type solver bug: can't insert into a metatable; have to force cast
-			table.insert(self._connections :: any, index, signalConnection)
-			return signalConnection
-		end
-	end
-
-	self._connections[connectionCount + 1] = signalConnection
-	return signalConnection
+	e:dispatch("something")
 end
 
-function EventSignal.getParent(self: InstanceInternal)
-	return self._parent
-end
-
-function EventSignal.dispatchWithHeaders(self: InstanceInternal, headers: DispatchHeaders, payload: any)
-	local connections = self._connections
-end
---
-
+-- Export the final class with a public interface
 return EventSignal :: ClassPublic

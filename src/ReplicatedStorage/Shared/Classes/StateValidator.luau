@@ -10,8 +10,10 @@ local ValidationReport = require(script.Parent.ValidationReport)
 local ValidationResult = require(script.Parent.ValidationResult)
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
+local Table = require(ReplicatedStorage.Shared.Types.Table)
 
-export type StateValidator = (state: any) -> ValidationReport.InstancePublic
+export type StateValidator = (state: any, compareAgainst: any) -> ValidationReport.InstancePublic
+export type StateUpdater = (prev: any) -> any
 
 -- Non-static types
 export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
@@ -21,15 +23,19 @@ export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
 export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	-- private instance fields here
 	_internalState: any,
-	_stateValidator: StateValidator,
+	_compareAgainst: any,
+	_stateValidator: StateValidator?,
+	_validationReport: ValidationReport.InstancePublic,
 }
 
 export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	-- public instance methods here
-	getState: (self: any) -> any,
+	getState: (self: any, key: string?) -> any,
 	setState: (self: any, state: any) -> (),
 	useValidator: (self: any, validator: StateValidator) -> (),
 	validate: (self: any) -> ValidationReport.InstancePublic,
+	updateState: (self: any, state: Table.Map<any, StateUpdater> | any) -> (),
+	getValidationReport: (self: any) -> ValidationReport.InstancePublic,
 }
 
 export type LocalInstanceMethodsPrivate<CI, II, SCI> = {
@@ -67,8 +73,8 @@ export type ClassFieldsPrivate = {
 
 export type ClassMethodsPublic = {
 	-- public static methods here
-	new: (state: any) -> InstancePublic,
-	newWithInitialization: (withInitialization: boolean, state: any) -> InstancePublic,
+	new: (state: any, compareAgainst: any) -> InstancePublic,
+	newWithInitialization: (withInitialization: boolean, state: any, compareAgainst: any) -> InstancePublic,
 	test: () -> (),
 }
 
@@ -91,10 +97,6 @@ export type ClassInternal =
 
 local StateValidator = newClass({} :: InstancePublic, "StateValidator", Super) :: ClassInternal
 
-local defaultValidator: StateValidator = function(state)
-	return ValidationReport.new()
-end
-
 -- Private static fields
 --
 
@@ -102,15 +104,15 @@ end
 --
 
 -- Constructors
-function StateValidator.newWithInitialization<_, State>(withInitialization, state)
-	-- If inheriting:
+function StateValidator.newWithInitialization(withInitialization, state, compareAgainst)
 	local self = setmetatable((Super.new() :: any) :: InstanceInternal, StateValidator)
-	-- local self = setmetatable(_self :: InstanceInternal, StateValidator)
 	StateValidator:__init__(self, withInitialization)
 
 	-- Assign private fields
 	self._internalState = state
-	self._stateValidator = defaultValidator
+	self._stateValidator = nil
+	self._compareAgainst = compareAgainst
+	self._validationReport = ValidationReport.new()
 	--
 
 	-- Assign public fields
@@ -120,8 +122,8 @@ function StateValidator.newWithInitialization<_, State>(withInitialization, stat
 	return self
 end
 
-function StateValidator.new(state)
-	return StateValidator.newWithInitialization(true, state)
+function StateValidator.new(...)
+	return StateValidator.newWithInitialization(true, ...)
 end
 
 function StateValidator.test()
@@ -135,35 +137,29 @@ function StateValidator.test()
 		y = 200,
 	}
 
-	local o = StateValidator.new(value)
+	local compareAgainst = {
+		x = 200,
+		y = 300,
+	}
 
-	o:useValidator(function(state: Data)
-		local validationReport = ValidationReport.new():destroy()
+	local s = StateValidator.new(value, compareAgainst)
 
-		if state.x > 99 then
-			validationReport:addResult(ValidationResult.new("failed", "too big"))
-		end
+	s:useValidator(function(state: Data, compareAgainst)
+		local validationReport = s:getValidationReport()
 
-		if state.y < 300 then
-			validationReport:addResult(ValidationResult.new("failed", "too small"))
-		end
-
-		if state.y == 200 then
-			validationReport:addResult(ValidationResult.new("passed", "just right!"))
+		if state.x > compareAgainst.x then
+			validationReport:addResult(ValidationResult.new("failed"))
 		end
 
 		return validationReport
 	end)
 
-	local v = o:validate()
+	local validationReport = s:validate()
 
-	if v:hasPassed() then
-		print("IT PASSED")
-		print(v:getResults())
-	else
-		print("IT FAILED")
-		print(v:getResults())
+	if validationReport:hasFailed() then
 	end
+
+	validationReport:clear()
 end
 --
 
@@ -177,8 +173,8 @@ end
 --
 
 -- Public instance methods
-function StateValidator.getState(self: InstanceInternal)
-	return self._internalState
+function StateValidator.getState(self: InstanceInternal, key)
+	return if key then self._internalState[key] else self._internalState
 end
 
 function StateValidator.setState(self: InstanceInternal, state)
@@ -190,7 +186,24 @@ function StateValidator.useValidator(self: InstanceInternal, validator)
 end
 
 function StateValidator.validate(self: InstanceInternal)
-	return self._stateValidator(self._internalState)
+	if self._stateValidator ~= nil then
+		return self._stateValidator(self._internalState, self._compareAgainst)
+	end
+	return ValidationReport.new():destroy()
+end
+
+function StateValidator.updateState(self: InstanceInternal, state: any)
+	if typeof(state) == "table" and typeof(self._internalState) == "table" then
+		for key, stateUpdater in next, state :: Table.Map<any, StateUpdater> do
+			self._internalState[key] = stateUpdater(self._internalState[key])
+		end
+	else
+		self:setState(state)
+	end
+end
+
+function StateValidator.getValidationReport(self: InstanceInternal)
+	return self._validationReport
 end
 --
 

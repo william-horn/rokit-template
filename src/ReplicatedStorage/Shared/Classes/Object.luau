@@ -113,10 +113,6 @@ end
 function Object.new(...)
 	return Object.newWithInitialization(true, ...)
 end
-
-function Object.test()
-	local o = Object.new()
-end
 --
 
 -- Public static methods
@@ -141,8 +137,12 @@ function Object.getId(self: InstanceInternal)
 end
 
 function Object.destroy(self: InstanceInternal)
-	self._isDestroyed = true
+	if self._isDestroyed then
+		warn("Attempt to call destroy() on Object '" .. self:getClassName() .. "' (Object has already been destroyed")
+		return self
+	end
 
+	self._isDestroyed = true
 	local _class = self:_getClass() :: newClass.AnyClassInternal?
 
 	-- ripple up the class hierarchy
@@ -164,5 +164,7 @@ function Object.getClass(self: InstanceInternal)
 	return self._class
 end
 --
+
+function Object.test() end
 
 return Object :: ClassPublic

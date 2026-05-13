@@ -12,7 +12,7 @@ local Server = {}
 Run all server start up processes
 ]]
 function Server:run()
-	StateValidator.test()
+	EventSignal.test()
 end
 
 return Server

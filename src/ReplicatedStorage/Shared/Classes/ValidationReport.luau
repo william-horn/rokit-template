@@ -30,6 +30,7 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	getResults: (self: any) -> ValidationReport,
 	clear: (self: any) -> (),
 	hasPassed: (self: any) -> boolean,
+	hasFailed: (self: any) -> boolean,
 }
 
 export type LocalInstanceMethodsPrivate<CI, II, SCI> = {
@@ -171,6 +172,10 @@ end
 
 function ValidationReport.hasPassed(self: InstanceInternal)
 	return self._hasPassed
+end
+
+function ValidationReport.hasFailed(self: InstanceInternal)
+	return self._hasPassed == false
 end
 
 function ValidationReport.destroy(self: InstanceInternal)
