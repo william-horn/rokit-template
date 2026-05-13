@@ -1,9 +1,11 @@
 --!strict
 --[[
-	@author: William J. Horn
-	@written: 10/20/2025
+	@author William J. Horn (ScriptGuider@ROBLOX.com)
+	@written 5/12/2026
 
-	EventSignal class
+	EventSignal
+	
+	If you have any questions, email williamjosephhorn@gmail.com
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SignalConnection = require(script.Parent.SignalConnection)
@@ -15,35 +17,80 @@ local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
 local Table = require(ReplicatedStorage.Shared.Types.Table)
 local mergeTables = require(ReplicatedStorage.Shared.Util.Table.mergeTables)
 
---[[
-	Class-specific type definitions
-
-	`T = never` allows the interface to switch it's fields to becoming
-	optional, via the `value | T` disjunction. `never` indicates that 
-	no alternative type is used.
-]]
 export type EventSettings<T = never> = {
+	--[[
+		How many times the event can be dispatched before the event
+		signal will disable itself. If the limit is reached, the event's 
+		status will be set to `"DispatchLimitReached"` until manually
+		changed.
+	]]
 	dispatchLimit: number | T,
-	dispatchInterval: number | T,
 
+	--[[
+		How long in seconds the event will reject dispatches for until
+		the given time has elapsed. During this time, the event's status
+		will be `"OnCooldown"`.
+	]]
+	dispatchCooldown: number | T,
+
+	--[[
+		The number of successful dispatches until the event will throttle
+		new incoming dispatches. The duration of the throttle is determined
+		by `throttleDuration`. When throttled, the event's status will be
+		set to `"Throttling"`
+	]]
 	throttleLimit: number | T,
+
+	--[[
+		How long in seconds until the event will stop throttling incoming
+		dispatches, if the throttle limit has been reached.
+	]]
 	throttleDuration: number | T,
+
+	--[[
+		How long in seconds until the dispatch counter will reset before
+		reaching the throttle limit.
+	]]
 	throttleResetInterval: number | T,
 
+	--[[
+		If true, incoming dispatches will be queued and executed as soon
+		as the event's state is set back to `"Listening"`
+	]]
 	queueThrottledDispatches: boolean | T,
+
+	--[[
+		If true, incoming dispatches
+	]]
+	queueCooldownDispatches: boolean | T,
 }
 
 export type EventAnalytics = {
 	dispatches: {
+		--[[
+			Number of successful dispatches. Successful dispatches
+			are any dispatches while the event is in the state of
+			`"Listening"`
+		]]
 		successful: number,
+
+		--[[
+			Number of dispatches while event was NOT in the state
+			of `"Listening"`
+		]]
 		failed: number,
+
+		--[[
+			Total number of times the event has been dispatched or
+			attempted to dispatch.
+		]]
 		total: number,
 	},
 }
 
-export type DispatchHeaders = {
-	withPriority: number,
-	async: boolean,
+export type DispatchHeaders<T = never> = {
+	withPriority: number | T,
+	async: boolean | T,
 }
 
 --[[
@@ -60,20 +107,83 @@ export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	_connections: typeof(setmetatable({} :: Table.ArrayOf<SignalConnection.InstancePublic>, { __mode = "v" })),
 	_eventSettings: EventSettings,
 	_eventAnalytics: EventAnalytics,
-	_eventSettingsValidator: StateValidator.InstancePublic,
+	_dispatchValidator: StateValidator.InstancePublic,
 }
 
 --[[
 	PUBLIC Methods - Instance
 ]]
 export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
+	--[[
+		Connect a handler function to the event signal. The handler
+		function is a callback that is executed when the event is
+		dispatched.
+
+		<i>Inherited from:</i> [<b>EventSignal</b>](#)
+
+		<b>Example:</b>
+
+		```luau
+		local e = EventSignal.new()
+
+		e:connect(function(event, payload)
+			print(event:toString() .. "fired with payload: ", payload)
+		end)
+		```
+
+		@param handler <<b>function</b>> The callback that is executed when the event is dispatched.
+		@param connectionSettings <<b>ConnectionSettings</b>> Connection settings for the current connection.
+		
+		@return `signalConnection` <<b>SignalConnection</b>> The new signal connection bound to the event.
+	]]
 	connect: (
 		self: any,
-		handler: (headers: DispatchHeaders, event: IP, payload: any) -> (),
+		handler: (event: IP, payload: any) -> (),
 		connectionSettings: SignalConnection.ConnectionSettings<nil>?
 	) -> SignalConnection.InstancePublic,
-	dispatch: (self: any, payload: any) -> (),
-	dispatchWithHeaders: (self: any, headers: DispatchHeaders, event: IP, payload: any) -> (),
+
+	--[[
+		Dispatch the event with a given payload. The event dispatch
+		will only be triggered if it is in the state of `"Listening"`.
+		All event handlers that match running criteria will fire.
+
+		<i>Inherited from:</i> [<b>EventSignal</b>](#)
+
+		<b>Example:</b>
+
+		```luau
+		local e = EventSignal.new()
+
+		e:connect(function(event, payload)
+			print("dispatched with payload: ", payload)
+		end)
+		
+		e:dispatch("test") --> "dispatched with payload: test"
+		```
+
+		@param payload <<b>any</b>> The data passed to the event's connection handler function.
+		@param headers? <<b>DispatchHeaders?</b>> A map of directives for configuring the dispatch.
+
+		@return `dispatchValidationReport` <<b>ValidationReport</b>> A validation report of the dispatch attempt.
+	]]
+	dispatch: (self: any, payload: any, headers: DispatchHeaders<nil>?) -> (),
+
+	--[[
+		Gets the parent event, if one is defined.
+
+		<i>Inherited from:</i> [<b>EventSignal</b>](#)
+
+		<b>Example:</b>
+
+		```luau
+		local parent = EventSignal.new()
+		local child = EventSignal.new(parent)
+
+		print(child:getParent())
+		```
+
+		@return `eventParent?` <<b>EventSignal?</b>> The parent of the event signal, or `nil` if none is defined.
+	]]
 	getParent: (self: any) -> IP?,
 }
 
@@ -188,14 +298,15 @@ function EventSignal.newWithInitialization(withInitialization, parent, eventSett
 	self._propagating = false
 
 	self._eventSettings = {
-		dispatchInterval = 0,
-		dispatchLimit = 0,
+		dispatchLimit = -1,
+		dispatchCooldown = 0,
 
+		throttleLimit = -1,
 		throttleDuration = 0,
-		throttleLimit = 0,
 		throttleResetInterval = 0,
 
 		queueThrottledDispatches = false,
+		queueCooldownDispatches = false,
 	}
 
 	self._eventAnalytics = {
@@ -221,7 +332,7 @@ function EventSignal.newWithInitialization(withInitialization, parent, eventSett
 	end
 
 	self._parent = parent :: InstanceInternal?
-	self._eventSettingsValidator = StateValidator.new(self._eventSettings, self)
+	self._dispatchValidator = StateValidator.new(self._eventSettings, self)
 
 	--[[
 		PUBLIC Fields - Instance
@@ -280,14 +391,14 @@ function EventSignal.getParent(self: InstanceInternal)
 	return self._parent
 end
 
-function EventSignal.dispatchWithHeaders(self: InstanceInternal, headers, payload)
+function EventSignal.dispatch(self: InstanceInternal, payload, headers)
 	local connections = self._connections
 
-	local eventValidator = self._eventSettingsValidator
-	local eventValidationReport = eventValidator:validate()
+	local dispatchValidator = self._dispatchValidator
+	local dispatchValidationReport = dispatchValidator:validate()
 
-	if eventValidationReport:hasFailed() then
-		return eventValidationReport
+	if dispatchValidationReport:hasFailed() then
+		return dispatchValidationReport
 	end
 
 	for index = #connections, 1, -1 do
@@ -295,14 +406,8 @@ function EventSignal.dispatchWithHeaders(self: InstanceInternal, headers, payloa
 		connection:runHandler(self, payload)
 	end
 
-	return eventValidationReport
-end
-
-function EventSignal.dispatch(self: InstanceInternal, payload)
-	return self:dispatchWithHeaders({
-		withPriority = 0,
-		async = false,
-	}, payload)
+	dispatchValidationReport:clear()
+	return dispatchValidationReport
 end
 
 --[[
@@ -316,7 +421,7 @@ function EventSignal.test()
 		dispatchLimit = 1,
 	})
 
-	e:connect(function(headers, event, payload)
+	e:connect(function(event, payload)
 		print("Fired: ", event)
 	end)
 

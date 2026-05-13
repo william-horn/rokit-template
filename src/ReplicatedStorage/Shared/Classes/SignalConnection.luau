@@ -41,6 +41,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		Get the initial settings of the `SignalConnection` that
 		was passed during instantiation
 
+		<i>Inherited from:</i> [<b>SignalConnection</b>](#)
+
 		<b>Example:</b>
 
 		```luau
@@ -60,6 +62,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		Gets the dispatch priority of the `SignalConnection`. Priority
 		represents which order SignalConnections are fired in.
 
+		<i>Inherited from:</i> [<b>SignalConnection</b>](#)
+
 		<b>Example:</b>
 
 		```luau
@@ -74,6 +78,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	--[[
 		Determines whether or not the `SignalConnection` is currently active
 		and listening for dispatches.
+
+		<i>Inherited from:</i> [<b>SignalConnection</b>](#)
 
 		<b>Example</b>
 
@@ -92,6 +98,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		Determines whether the `SignalConnection` is currently dead
 		and no longer listening to dispatches.
 
+		<i>Inherited from:</i> [<b>SignalConnection</b>](#)
+
 		<b>Example:</b>
 
 		```luau
@@ -108,6 +116,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	--[[
 		Determines whether the `SignalConnection` is currently alive, meaning
 		any state but "dead".
+
+		<i>Inherited from:</i> [<b>SignalConnection</b>](#)
 
 		<b>Example:</b>
 
@@ -129,6 +139,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		connections will not execute, but they are not dead, and can be resumed
 		later.
 
+		<i>Inherited from:</i> [<b>SignalConnection</b>](#)
+
 		<b>Example:</b>
 
 		```luau
@@ -145,6 +157,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		Sets the status of the `SignalConnection` instance. So far, the
 		only status options are `dead`, `listening`, and `paused`.
 
+		<i>Inherited from:</i> [<b>SignalConnection</b>](#)
+
 		<b>Example:</b>
 
 		```luau
@@ -159,6 +173,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		Gets the status of the `SignalConnection` instance. So far, the
 		only status options are `dead`, `listening`, and `paused`.
 
+		<i>Inherited from:</i> [<b>SignalConnection</b>](#)
+
 		<b>Example:</b>
 
 		```luau
@@ -171,11 +187,38 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	getStatus: (self: any) -> ConnectionStatus,
 
 	--[[
-	
+		Runs the `SignalConnection`'s handler function directly.
+
+		<i>Inherited from:</i> [<b>SignalConnection</b>](#)
+
+		<b>Example:</b>
+
+		```luau
+		local conn = SignalConnection.new(function(...)
+			print("Handler executed", ...)
+		end)
+
+		conn:runHandler(100) --> "Handler executed" 100
+		```
 	]]
 	runHandler: (self: any, ...any) -> (),
+
+	--[[
+		Disconnects the `SignalConnection` and calls `destroy()` on itself.
+		This will set the connection's status to `"dead"`
+
+		<i>Inherited from:</i> [<b>SignalConnection</b>](#)
+
+		<b>Example:</b>
+
+		```luau
+		local conn = SignalConnection.new(f)
+		print(conn:getStatus()) --> "listening"
+		conn:disconnect()
+		print(conn:getStatus()) --> "dead"
+		```
+	]]
 	disconnect: (self: any) -> (),
-	runHandlerWithValidation: (self: any, validationSettings: any) -> (),
 }
 
 --[[

@@ -3,7 +3,7 @@
 	@author William J. Horn (ScriptGuider@ROBLOX.com)
 	@written 5/12/2026
 
-	A template file for creating a new class.
+	NewClass
 	
 	If you have any questions, email williamjosephhorn@gmail.com
 ]]

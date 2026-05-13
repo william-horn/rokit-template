@@ -36,6 +36,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	--[[
 		Represents the instance as a string.
 
+		<i>Inherited from:</i> [<b>Object</b>](#)
+
 		<b>Example:</b>
 
 		```luau
@@ -52,6 +54,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		directly corresponds to the total lifetime instance count of every
 		Object subclass at the time of it's instantiation.
 
+		<i>Inherited from:</i> [<b>Object</b>](#)
+
 		<b>Example:</b>
 
 		```luau
@@ -67,6 +71,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 
 	--[[
 		Get the class name of the object.
+
+		<i>Inherited from:</i> [<b>Object</b>](#)
 
 		<b>Example:</b>
 
@@ -85,6 +91,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		destroyed, but once all references to the object are gone, it will
 		be eligible for garbage collection.
 
+		<i>Inherited from:</i> [<b>Object</b>](#)
+
 		<b>Example:</b>
 
 		```luau
@@ -101,6 +109,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	--[[
 		Determines whether the object has already been destroyed or not.
 
+		<i>Inherited from:</i> [<b>Object</b>](#)
+
 		<b>Example:</b>
 
 		```luau
@@ -116,6 +126,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 
 	--[[
 		Get the actual `Class` reference of an object.
+
+		<i>Inherited from:</i> [<b>Object</b>](#)
 
 		<b>Example:</b>
 
@@ -134,6 +146,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 
 	--[[
 		Get the super class reference to the object.
+
+		<i>Inherited from:</i> [<b>Object</b>](#)
 
 		<b>Example:</b>
 
