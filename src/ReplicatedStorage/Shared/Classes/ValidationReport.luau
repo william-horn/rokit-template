@@ -29,10 +29,11 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	-- public instance methods here
 	addResult: (self: any, validationResult: ValidationResult.InstancePublic) -> (),
 	peekResults: (self: any) -> ValidationResultList,
-	collapseResults: (self: any) -> ValidationResultList,
+	copyResults: (self: any) -> ValidationResultList,
 	clear: (self: any) -> (),
 	hasPassed: (self: any) -> boolean,
 	hasFailed: (self: any) -> boolean,
+	runResultHandlers: (self: any) -> (),
 }
 
 export type LocalInstanceMethodsPrivate<CI, II, SCI> = {
@@ -144,10 +145,8 @@ function ValidationReport.peekResults(self: InstanceInternal)
 	return self._validationResults
 end
 
-function ValidationReport.collapseResults(self: InstanceInternal)
-	local validationResults = mergeTables({}, self:peekResults())
-	self:clear()
-	return validationResults
+function ValidationReport.copyResults(self: InstanceInternal)
+	return mergeTables({}, self:peekResults())
 end
 
 function ValidationReport.clear(self: InstanceInternal)
@@ -172,8 +171,26 @@ function ValidationReport.destroy(self: InstanceInternal)
 	return self
 end
 
+function ValidationReport.runResultHandlers(self: InstanceInternal)
+	for index, validationResult in next, self._validationResults do
+		validationResult:runHandler()
+	end
+end
+
 function ValidationReport.test()
 	local o = ValidationReport.new()
+
+	o:addResult(ValidationResult.new({
+		result = "passed",
+		message = "good job!",
+		handler = function(self)
+			print("passed: ", self.message)
+		end,
+	}))
+
+	if o:hasPassed() then
+		o:runResultHandlers()
+	end
 end
 
 return ValidationReport :: ClassPublic

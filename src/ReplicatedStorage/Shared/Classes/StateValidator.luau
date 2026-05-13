@@ -362,7 +362,7 @@ function StateValidator.test()
 
 	s:useValidator(function(validationReport, state: Data, compareAgainst)
 		if state.x > compareAgainst.x then
-			validationReport:addResult(ValidationResult.new("failed"))
+			validationReport:addResult(ValidationResult.new({ result = "failed" }))
 		end
 
 		return validationReport

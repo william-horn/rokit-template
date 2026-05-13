@@ -17,11 +17,13 @@ local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
 local Table = require(ReplicatedStorage.Shared.Types.Table)
 local mergeTables = require(ReplicatedStorage.Shared.Util.Table.mergeTables)
 
+export type EventState = "listening" | "dispatch_limit_reached" | "cooldown" | "throttling" | "dead"
+
 export type EventSettings<T = never> = {
 	--[[
 		How many times the event can be dispatched before the event
 		signal will disable itself. If the limit is reached, the event's 
-		status will be set to `"DispatchLimitReached"` until manually
+		status will be set to `"dispatch_limit_reached"` until manually
 		changed.
 	]]
 	dispatchLimit: number | T,
@@ -29,7 +31,7 @@ export type EventSettings<T = never> = {
 	--[[
 		How long in seconds the event will reject dispatches for until
 		the given time has elapsed. During this time, the event's status
-		will be `"OnCooldown"`.
+		will be `"cooldown"`.
 	]]
 	dispatchCooldown: number | T,
 
@@ -37,7 +39,7 @@ export type EventSettings<T = never> = {
 		The number of successful dispatches until the event will throttle
 		new incoming dispatches. The duration of the throttle is determined
 		by `throttleDuration`. When throttled, the event's status will be
-		set to `"Throttling"`
+		set to `"throttling"`
 	]]
 	throttleLimit: number | T,
 
@@ -55,7 +57,7 @@ export type EventSettings<T = never> = {
 
 	--[[
 		If true, incoming dispatches will be queued and executed as soon
-		as the event's state is set back to `"Listening"`
+		as the event's state is set back to `"listening"`
 	]]
 	queueThrottledDispatches: boolean | T,
 
@@ -70,13 +72,13 @@ export type EventAnalytics = {
 		--[[
 			Number of successful dispatches. Successful dispatches
 			are any dispatches while the event is in the state of
-			`"Listening"`
+			`"listening"`
 		]]
 		successful: number,
 
 		--[[
 			Number of dispatches while event was NOT in the state
-			of `"Listening"`
+			of `"listening"`
 		]]
 		failed: number,
 
@@ -90,6 +92,7 @@ export type EventAnalytics = {
 
 export type DispatchHeaders<T = never> = {
 	withPriority: number | T,
+	withValidation: boolean | T,
 	async: boolean | T,
 }
 
@@ -108,6 +111,7 @@ export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	_eventSettings: EventSettings,
 	_eventAnalytics: EventAnalytics,
 	_dispatchValidator: StateValidator.InstancePublic,
+	_state: EventState,
 }
 
 --[[
@@ -166,7 +170,12 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 
 		@return `dispatchValidationReport` <<b>ValidationReport</b>> A validation report of the dispatch attempt.
 	]]
-	dispatch: (self: any, payload: any, headers: DispatchHeaders<nil>?) -> (),
+	dispatch: (self: any, payload: any, headers: DispatchHeaders<nil>?) -> ValidationReport.InstancePublic,
+
+	--[[
+	
+	]]
+	dispatchWithHeaders: (self: any, payload: any, headers: DispatchHeaders) -> ValidationReport.InstancePublic,
 
 	--[[
 		Gets the parent event, if one is defined.
@@ -316,6 +325,7 @@ function EventSignal.newWithInitialization(withInitialization, parent, eventSett
 	]]
 	self._connections = setmetatable({}, { __mode = "v" })
 	self._propagating = false
+	self._state = "listening"
 
 	self._eventSettings = {
 		dispatchLimit = -1,
@@ -387,9 +397,11 @@ function EventSignal._dispatchValidationHandler(
 	local analytics = compareAgainst:getAnalytics()
 
 	if analytics.dispatches.successful >= state.dispatchLimit then
-		validationReport:addResult(
-			ValidationResult.new("failed", "Dispatch limit of " .. state.dispatchLimit .. " was reached")
-		)
+		validationReport:addResult(ValidationResult.new({
+			result = "failed",
+			message = "Dispatch limit of " .. state.dispatchLimit .. " was reached",
+			handler = function(self) end,
+		}))
 	end
 
 	return validationReport
@@ -441,7 +453,7 @@ function EventSignal.getAnalytics(self: InstanceInternal)
 	return self._eventAnalytics
 end
 
-function EventSignal.dispatch(self: InstanceInternal, payload, headers)
+function EventSignal.dispatchWithHeaders(self: InstanceInternal, payload, headers)
 	local connections = self._connections
 
 	local dispatchValidator = self._dispatchValidator
@@ -457,6 +469,20 @@ function EventSignal.dispatch(self: InstanceInternal, payload, headers)
 	end
 
 	return dispatchValidationReport
+end
+
+function EventSignal.dispatch(self: InstanceInternal, payload, headers)
+	local dispatchHeaders: DispatchHeaders = {
+		withValidation = true,
+		async = false,
+		withPriority = 0,
+	}
+
+	if headers ~= nil then
+		mergeTables(dispatchHeaders, headers)
+	end
+
+	return self:dispatchWithHeaders(payload, dispatchHeaders)
 end
 
 --[[

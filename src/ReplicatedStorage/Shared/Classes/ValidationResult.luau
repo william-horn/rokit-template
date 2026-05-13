@@ -8,6 +8,14 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
+local mergeTables = require(ReplicatedStorage.Shared.Util.Table.mergeTables)
+
+export type ResultType = "passed" | "failed" | "warning" | "error"
+export type ValidationResultData<T = never> = {
+	result: ResultType | T,
+	message: string | T,
+	handler: (self: { result: string, message: string }) -> ()?,
+}
 
 -- Non-static types
 export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
@@ -17,8 +25,7 @@ export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
 export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	-- private instance fields here
 	_hasPassed: boolean,
-	_result: ResultType,
-	_message: string,
+	_validationResultData: ValidationResultData,
 }
 
 export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
@@ -29,6 +36,7 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	hasFailed: (self: any) -> boolean,
 	hasWarning: (self: any) -> boolean,
 	hasError: (self: any) -> boolean,
+	runHandler: (self: any) -> (),
 }
 
 export type LocalInstanceMethodsPrivate<CI, II, SCI> = {
@@ -66,8 +74,12 @@ export type ClassFieldsPrivate = {
 
 export type ClassMethodsPublic = {
 	-- public static methods here
-	new: (result: ResultType, message: string?) -> InstancePublic,
-	newWithInitialization: (withInitialization: boolean, result: ResultType, message: string?) -> InstancePublic,
+	-- new: (result: ResultType, message: string?) -> InstancePublic,
+	new: (validationResultData: ValidationResultData<nil>?) -> InstancePublic,
+	newWithInitialization: (
+		withInitialization: boolean,
+		validationResultData: ValidationResultData<nil>?
+	) -> InstancePublic,
 	test: () -> (),
 }
 
@@ -88,8 +100,6 @@ export type ClassInternal =
 	& InstanceMethodsPublic<ClassPublic, InstancePublic, Super.ClassPublic>
 	& newClass.ClassTemplatePrivate<InstancePublic, Super.ClassPublic>
 
-export type ResultType = "passed" | "failed" | "warning" | "error"
-
 local ValidationResult = newClass({} :: InstancePublic, "ValidationResult", Super) :: ClassInternal
 
 -- Private static fields
@@ -99,17 +109,21 @@ local ValidationResult = newClass({} :: InstancePublic, "ValidationResult", Supe
 --
 
 -- Constructors
-function ValidationResult.newWithInitialization(withInitialization, result, message)
+function ValidationResult.newWithInitialization(withInitialization, validationResultData)
 	-- If inheriting:
 	local self = setmetatable((Super.new() :: any) :: InstanceInternal, ValidationResult)
 	-- local self = setmetatable(_self :: InstanceInternal, ValidationResult)
 	ValidationResult:__init__(self, withInitialization)
 
 	-- Assign private fields
-	self._result = result
-	self._hasPassed = result ~= "failed"
-	self._message = message or "No description"
-	--
+	self._validationResultData = {
+		result = "passed",
+		message = "No description",
+	}
+
+	if validationResultData ~= nil then
+		mergeTables(self._validationResultData, validationResultData)
+	end
 
 	-- Assign public fields
 	--
@@ -122,11 +136,6 @@ function ValidationResult.new(...)
 	return ValidationResult.newWithInitialization(true, ...)
 end
 
-function ValidationResult.test()
-	local o = ValidationResult.new("passed")
-end
---
-
 -- Public static methods
 --
 
@@ -138,11 +147,11 @@ end
 
 -- Public instance methods
 function ValidationResult.getResult(self: InstanceInternal)
-	return self._result
+	return self._validationResultData.result
 end
 
 function ValidationResult.getMessage(self: InstanceInternal)
-	return self._message
+	return self._validationResultData.message
 end
 
 function ValidationResult.hasPassed(self: InstanceInternal)
@@ -152,6 +161,22 @@ end
 function ValidationResult.hasFailed(self: InstanceInternal)
 	return self._hasPassed == false
 end
---
+
+function ValidationResult.runHandler(self: InstanceInternal)
+	if self._validationResultData.handler ~= nil then
+		self._validationResultData.handler({
+			result = self:getResult(),
+			message = self:getMessage(),
+		})
+	end
+end
+
+function ValidationResult.test()
+	local o = ValidationResult.new({
+		result = "warning",
+		message = "",
+		handler = function(self) end,
+	})
+end
 
 return ValidationResult :: ClassPublic
