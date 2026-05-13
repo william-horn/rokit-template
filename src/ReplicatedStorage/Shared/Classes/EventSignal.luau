@@ -185,6 +185,24 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		@return `eventParent?` <<b>EventSignal?</b>> The parent of the event signal, or `nil` if none is defined.
 	]]
 	getParent: (self: any) -> IP?,
+
+	--[[
+		Get the event analytics -- a lifetime record table monitoring the behavior
+		of the event.
+
+		<i>Inherited from:</i> [<b>EventSignal</b>](#)
+
+		<b>Example:</b>
+
+		```luau
+		local e = EventSignal.new()
+		e:dispatch()
+		print(e:getAnalytics().dispatches.total) --> 1
+		```
+
+		@return `eventAnalytics` <<b>EventAnalytics</b>> A table of lifetime event analytics
+	]]
+	getAnalytics: (self: any) -> EventAnalytics,
 }
 
 --[[
@@ -242,7 +260,9 @@ export type ClassMethodsPublic = {
 --[[
 	PRIVATE Static Methods - Class
 ]]
-export type ClassMethodsPrivate = {}
+export type ClassMethodsPrivate = {
+	_dispatchValidationHandler: StateValidator.StateValidationHandler,
+}
 
 --[[
 	Type intersections for combining all static definitions into
@@ -332,7 +352,13 @@ function EventSignal.newWithInitialization(withInitialization, parent, eventSett
 	end
 
 	self._parent = parent :: InstanceInternal?
-	self._dispatchValidator = StateValidator.new(self._eventSettings, self)
+
+	do
+		local dispatchValidator = StateValidator.new(self._eventSettings, self)
+		self._dispatchValidator = dispatchValidator
+
+		dispatchValidator:useValidator(EventSignal._dispatchValidationHandler)
+	end
 
 	--[[
 		PUBLIC Fields - Instance
@@ -346,16 +372,36 @@ function EventSignal.new(...)
 	return EventSignal.newWithInitialization(true, ...)
 end
 
--- Public static methods
---
+--[[
+	PUBLIC Static Methods - Class
+]]
 
--- Private static methods
---
+--[[
+	PRIVATE Static Methods - Class
+]]
+function EventSignal._dispatchValidationHandler(
+	validationReport,
+	state: EventSettings,
+	compareAgainst: InstanceInternal
+)
+	local analytics = compareAgainst:getAnalytics()
 
--- Private instance methods
---
+	if analytics.dispatches.successful >= state.dispatchLimit then
+		validationReport:addResult(
+			ValidationResult.new("failed", "Dispatch limit of " .. state.dispatchLimit .. " was reached")
+		)
+	end
 
--- Public instance methods
+	return validationReport
+end
+
+--[[
+	PRIVATE Methods - Instance
+]]
+
+--[[
+	PUBLIC Methods - Instance
+]]
 function EventSignal.connect(self: InstanceInternal, handler, connectionSettings)
 	local signalConnection = SignalConnection.new(handler, connectionSettings)
 	local connectionCount = #self._connections
@@ -391,6 +437,10 @@ function EventSignal.getParent(self: InstanceInternal)
 	return self._parent
 end
 
+function EventSignal.getAnalytics(self: InstanceInternal)
+	return self._eventAnalytics
+end
+
 function EventSignal.dispatch(self: InstanceInternal, payload, headers)
 	local connections = self._connections
 
@@ -406,7 +456,6 @@ function EventSignal.dispatch(self: InstanceInternal, payload, headers)
 		connection:runHandler(self, payload)
 	end
 
-	dispatchValidationReport:clear()
 	return dispatchValidationReport
 end
 
@@ -422,35 +471,10 @@ function EventSignal.test()
 	})
 
 	e:connect(function(event, payload)
-		print("Fired: ", event)
+		print("Event dispatched with: ", payload)
 	end)
 
-	e:connect(function()
-		print("priority [0] - 1")
-	end)
-	e:connect(function()
-		print("priority [0] - 2")
-	end)
-	e:connect(function()
-		print("priority [1] - 1")
-	end, { priority = 1 })
-	e:connect(function()
-		print("priority [2] - 1")
-	end, { priority = 2 })
-	e:connect(function()
-		print("priority [1] - 2")
-	end, { priority = 1 })
-	e:connect(function()
-		print("priority [-1] - 1")
-	end, { priority = -1 }):destroy()
-	e:connect(function()
-		print("priority [3] - 1")
-	end, { priority = 3 })
-	e:connect(function()
-		print("priority [2] - 2")
-	end, { priority = 2 })
-
-	e:dispatch("something")
+	e:dispatch("idk")
 end
 
 -- Export the final class with a public interface

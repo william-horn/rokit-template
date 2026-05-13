@@ -10,8 +10,9 @@ local ValidationResult = require(script.Parent.ValidationResult)
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
 local Table = require(ReplicatedStorage.Shared.Types.Table)
+local mergeTables = require(ReplicatedStorage.Shared.Util.Table.mergeTables)
 
-export type ValidationReport = Table.ArrayOf<ValidationResult.InstancePublic>
+export type ValidationResultList = Table.ArrayOf<ValidationResult.InstancePublic>
 
 -- Non-static types
 export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
@@ -20,14 +21,15 @@ export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
 
 export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	-- private instance fields here
-	_validationResults: ValidationReport,
+	_validationResults: ValidationResultList,
 	_hasPassed: boolean,
 }
 
 export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	-- public instance methods here
 	addResult: (self: any, validationResult: ValidationResult.InstancePublic) -> (),
-	getResults: (self: any) -> ValidationReport,
+	peekResults: (self: any) -> ValidationResultList,
+	collapseResults: (self: any) -> ValidationResultList,
 	clear: (self: any) -> (),
 	hasPassed: (self: any) -> boolean,
 	hasFailed: (self: any) -> boolean,
@@ -121,26 +123,6 @@ function ValidationReport.new(...)
 	return ValidationReport.newWithInitialization(true, ...)
 end
 
-function ValidationReport.test()
-	local o = ValidationReport.new()
-
-	o:addResult(ValidationResult.new("passed"))
-	o:addResult(ValidationResult.new("passed", "with flying colors"))
-	o:addResult(ValidationResult.new("warning", "uh oh"))
-
-	print("Result: ", o)
-	print(ValidationReport)
-	print(ValidationResult)
-
-	o:destroy()
-	task.wait(5)
-
-	print(ValidationReport)
-	print(o)
-	print(ValidationResult)
-end
---
-
 -- Public static methods
 --
 
@@ -158,8 +140,14 @@ function ValidationReport.addResult(self: InstanceInternal, validationResult)
 	end
 end
 
-function ValidationReport.getResults(self: InstanceInternal)
+function ValidationReport.peekResults(self: InstanceInternal)
 	return self._validationResults
+end
+
+function ValidationReport.collapseResults(self: InstanceInternal)
+	local validationResults = mergeTables({}, self:peekResults())
+	self:clear()
+	return validationResults
 end
 
 function ValidationReport.clear(self: InstanceInternal)
@@ -183,6 +171,9 @@ function ValidationReport.destroy(self: InstanceInternal)
 	self:clear()
 	return self
 end
---
+
+function ValidationReport.test()
+	local o = ValidationReport.new()
+end
 
 return ValidationReport :: ClassPublic

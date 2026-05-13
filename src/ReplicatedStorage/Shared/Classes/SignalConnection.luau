@@ -380,7 +380,6 @@ end
 function SignalConnection.new(...)
 	return SignalConnection.newWithInitialization(true, ...)
 end
---
 
 --[[
 	PUBLIC Static Methods - Class

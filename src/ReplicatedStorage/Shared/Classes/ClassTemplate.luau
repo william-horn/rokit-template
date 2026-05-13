@@ -268,11 +268,6 @@ local function getActiveInstanceCount(class: AnyClassInternal)
 	return class._activeInstanceCount
 end
 
---[[
-	Gets the class name.
-
-	@return `className` <<b>string</b>> The class name.
-]]
 local function getClassName(class: AnyClassInternal)
 	return class._className
 end

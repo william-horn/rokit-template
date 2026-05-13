@@ -12,6 +12,8 @@ local Server = {}
 --[[
 Run all server start up processes
 ]]
-function Server:run() end
+function Server:run()
+	EventSignal.test()
+end
 
 return Server
