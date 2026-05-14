@@ -6,13 +6,23 @@
 	ValidationReport class
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local ValidationResult = require(script.Parent.ValidationResult)
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
 local Table = require(ReplicatedStorage.Shared.Types.Table)
 local mergeTables = require(ReplicatedStorage.Shared.Util.Table.mergeTables)
 
-export type ValidationResultList = Table.ArrayOf<ValidationResult.InstancePublic>
+export type ResultType = "passed" | "failed" | "warning" | "error" | "info"
+export type ValidationResult<T = never> = {
+	result: ResultType,
+	message: string | T,
+	handler: (result: ResultType, message: string) -> ()?,
+}
+
+export type ValidationHandler = (
+	validationReport: InstancePublic,
+	state: any,
+	compareAgainst: any
+) -> InstancePublic
 
 -- Non-static types
 export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
@@ -21,15 +31,15 @@ export type LocalInstanceFieldsPublic<CP, IP, SCP> = {
 
 export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	-- private instance fields here
-	_validationResults: ValidationResultList,
+	_validationResults: Table.ArrayOf<ValidationResult>,
 	_hasPassed: boolean,
 }
 
 export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	-- public instance methods here
-	addResult: (self: any, validationResult: ValidationResult.InstancePublic) -> (),
-	peekResults: (self: any) -> ValidationResultList,
-	copyResults: (self: any) -> ValidationResultList,
+	addResult: (self: any, validationResult: ValidationResult<nil>) -> (),
+	peekResults: (self: any) -> Table.ArrayOf<ValidationResult>,
+	copyResults: (self: any) -> Table.ArrayOf<ValidationResult>,
 	clear: (self: any) -> (),
 	hasPassed: (self: any) -> boolean,
 	hasFailed: (self: any) -> boolean,
@@ -135,8 +145,15 @@ end
 
 -- Public instance methods
 function ValidationReport.addResult(self: InstanceInternal, validationResult)
-	self._validationResults[#self._validationResults + 1] = validationResult
-	if self._hasPassed and validationResult:hasFailed() then
+	local finalValidationResult: ValidationResult = {
+		result = "passed",
+		message = "No description",
+	}
+
+	mergeTables(finalValidationResult, validationResult)
+	self._validationResults[#self._validationResults + 1] = finalValidationResult
+
+	if self._hasPassed and finalValidationResult.result == "failed" then
 		self._hasPassed = false
 	end
 end
@@ -151,7 +168,6 @@ end
 
 function ValidationReport.clear(self: InstanceInternal)
 	for index = 1, #self._validationResults do
-		self._validationResults[index]:destroy()
 		self._validationResults[index] = nil
 	end
 	self._hasPassed = true
@@ -173,24 +189,20 @@ end
 
 function ValidationReport.runResultHandlers(self: InstanceInternal)
 	for index, validationResult in next, self._validationResults do
-		validationResult:runHandler()
+		if validationResult.handler == nil then
+			continue
+		end
+
+		validationResult.handler(validationResult.result, validationResult.message)
 	end
 end
 
 function ValidationReport.test()
 	local o = ValidationReport.new()
 
-	o:addResult(ValidationResult.new({
-		result = "passed",
-		message = "good job!",
-		handler = function(self)
-			print("passed: ", self.message)
-		end,
-	}))
-
-	if o:hasPassed() then
-		o:runResultHandlers()
-	end
+	o:addResult({
+		result = "failed",
+	})
 end
 
 return ValidationReport :: ClassPublic

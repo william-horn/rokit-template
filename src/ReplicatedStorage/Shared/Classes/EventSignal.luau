@@ -9,9 +9,7 @@
 ]]
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SignalConnection = require(script.Parent.SignalConnection)
-local StateValidator = require(script.Parent.StateValidator)
 local ValidationReport = require(script.Parent.ValidationReport)
-local ValidationResult = require(script.Parent.ValidationResult)
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
 local Table = require(ReplicatedStorage.Shared.Types.Table)
@@ -69,6 +67,8 @@ export type EventSettings<T = never> = {
 
 export type EventAnalytics = {
 	dispatches: {
+		whileDispatchLimitReached: number,
+
 		--[[
 			Number of successful dispatches. Successful dispatches
 			are any dispatches while the event is in the state of
@@ -110,7 +110,7 @@ export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	_connections: typeof(setmetatable({} :: Table.ArrayOf<SignalConnection.InstancePublic>, { __mode = "v" })),
 	_eventSettings: EventSettings,
 	_eventAnalytics: EventAnalytics,
-	_dispatchValidator: StateValidator.InstancePublic,
+	_dispatchValidationReport: ValidationReport.InstancePublic,
 	_state: EventState,
 }
 
@@ -212,6 +212,8 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		@return `eventAnalytics` <<b>EventAnalytics</b>> A table of lifetime event analytics
 	]]
 	getAnalytics: (self: any) -> EventAnalytics,
+
+	getSettings: (self: any) -> EventSettings,
 }
 
 --[[
@@ -270,7 +272,7 @@ export type ClassMethodsPublic = {
 	PRIVATE Static Methods - Class
 ]]
 export type ClassMethodsPrivate = {
-	_dispatchValidationHandler: StateValidator.StateValidationHandler,
+	_dispatchValidationHandler: ValidationReport.ValidationHandler,
 }
 
 --[[
@@ -341,6 +343,7 @@ function EventSignal.newWithInitialization(withInitialization, parent, eventSett
 
 	self._eventAnalytics = {
 		dispatches = {
+			whileDispatchLimitReached = 0,
 			successful = 0,
 			failed = 0,
 			total = 0,
@@ -362,13 +365,7 @@ function EventSignal.newWithInitialization(withInitialization, parent, eventSett
 	end
 
 	self._parent = parent :: InstanceInternal?
-
-	do
-		local dispatchValidator = StateValidator.new(self._eventSettings, self)
-		self._dispatchValidator = dispatchValidator
-
-		dispatchValidator:useValidator(EventSignal._dispatchValidationHandler)
-	end
+	self._dispatchValidationReport = ValidationReport.new()
 
 	--[[
 		PUBLIC Fields - Instance
@@ -389,19 +386,18 @@ end
 --[[
 	PRIVATE Static Methods - Class
 ]]
-function EventSignal._dispatchValidationHandler(
-	validationReport,
-	state: EventSettings,
-	compareAgainst: InstanceInternal
-)
-	local analytics = compareAgainst:getAnalytics()
+function EventSignal._dispatchValidationHandler(validationReport, event: InstancePublic)
+	local analytics = event:getAnalytics()
+	local settings = event:getSettings()
 
-	if analytics.dispatches.successful >= state.dispatchLimit then
-		validationReport:addResult(ValidationResult.new({
+	if analytics.dispatches.successful >= settings.dispatchLimit then
+		validationReport:addResult({
 			result = "failed",
-			message = "Dispatch limit of " .. state.dispatchLimit .. " was reached",
-			handler = function(self) end,
-		}))
+			message = "Dispatch limit of " .. settings.dispatchLimit .. " was reached",
+			handler = function()
+				analytics.dispatches.whileDispatchLimitReached += 1
+			end,
+		})
 	end
 
 	return validationReport
@@ -453,21 +449,42 @@ function EventSignal.getAnalytics(self: InstanceInternal)
 	return self._eventAnalytics
 end
 
+function EventSignal.getSettings(self: InstanceInternal)
+	return self._eventSettings
+end
+
 function EventSignal.dispatchWithHeaders(self: InstanceInternal, payload, headers)
+	self._eventAnalytics.dispatches.total += 1
+
 	local connections = self._connections
+	local dispatchValidationReport = self._dispatchValidationReport
 
-	local dispatchValidator = self._dispatchValidator
-	local dispatchValidationReport = dispatchValidator:validate()
+	--[[
+		Clear the previous validation report before every dispatch
+	]]
+	dispatchValidationReport:clear()
 
-	if dispatchValidationReport:hasFailed() then
-		return dispatchValidationReport
+	if headers.withValidation then
+		EventSignal._dispatchValidationHandler(dispatchValidationReport, self)
+		dispatchValidationReport:runResultHandlers()
+
+		if dispatchValidationReport:hasFailed() then
+			self._eventAnalytics.dispatches.failed += 1
+			return dispatchValidationReport
+		end
 	end
 
+	--[[
+		The dispatch has either passed validation or has opted out
+		of validation by this point. The event is authorized to 
+		fire connections.
+	]]
 	for index = #connections, 1, -1 do
 		local connection = connections[index]
 		connection:runHandler(self, payload)
 	end
 
+	self._eventAnalytics.dispatches.successful += 1
 	return dispatchValidationReport
 end
 
@@ -501,6 +518,10 @@ function EventSignal.test()
 	end)
 
 	e:dispatch("idk")
+	e:dispatch("idk")
+	e:dispatch("idk")
+
+	print(e)
 end
 
 -- Export the final class with a public interface
