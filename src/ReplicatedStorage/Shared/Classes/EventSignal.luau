@@ -479,7 +479,7 @@ function EventSignal.connect(self: InstanceInternal, handler, connectionSettings
 		local connection = self._connections[index]
 
 		if
-			connection:isListening() and signalConnection:getPriority() <= connection:getPriority()
+			connection:isAlive() and signalConnection:getPriority() <= connection:getPriority()
 			or connection:getPriority() < 0
 		then
 			-- type solver bug: can't insert into a metatable; have to force cast
