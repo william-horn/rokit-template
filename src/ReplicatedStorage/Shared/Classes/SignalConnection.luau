@@ -15,9 +15,16 @@ local mergeTables = require(ReplicatedStorage.Shared.Util.Table.mergeTables)
 ]]
 export type ConnectionSettings<T = never> = {
 	priority: number | T,
+	async: boolean | T,
 }
 
-export type ConnectionStatus = "dead" | "listening" | "paused"
+export type DispatchSettings<T = never> = {
+	withPriority: number | T,
+	withValidation: boolean | T,
+	withAsync: boolean | T,
+}
+
+export type ConnectionState = "dead" | "listening" | "paused"
 
 --[[
 	PUBLIC Fields - Instance
@@ -29,7 +36,7 @@ export type LocalInstanceFieldsPublic<CP, IP, SCP> = {}
 ]]
 export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	_settings: ConnectionSettings,
-	_status: ConnectionStatus,
+	_status: ConnectionState,
 	_handler: (...any) -> (),
 }
 
@@ -124,7 +131,7 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 		```luau
 		local conn = SignalConnection.new(f)
 		print(conn:isAlive()) --> true
-		conn:setStatus("paused")
+		conn:setState("paused")
 		print(conn:isAlive()) --> true
 		conn:disconnect()
 		print(conn:isAlive()) --> false
@@ -145,7 +152,7 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 
 		```luau
 		local conn = SignalConnection.new(f)
-		conn:setStatus("paused")
+		conn:setState("paused")
 		print(conn:isPaused()) --> true
 		```
 
@@ -163,11 +170,11 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 
 		```luau
 		local conn = SignalConnection.new(f)
-		conn:setStatus("paused")
-		print(conn:getStatus()) --> "paused"
+		conn:setState("paused")
+		print(conn:getState()) --> "paused"
 		```
 	]]
-	setStatus: (self: any, status: ConnectionStatus) -> (),
+	setState: (self: any, status: ConnectionState) -> (),
 
 	--[[
 		Gets the status of the `SignalConnection` instance. So far, the
@@ -179,29 +186,12 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 
 		```luau
 		local conn = SignalConnection.new(f)
-		print(conn:getStatus()) --> "listening"
+		print(conn:getState()) --> "listening"
 		```
 
 		@return `status` <<b>string</b>> The status of the `SignalConnection` instance.
 	]]
-	getStatus: (self: any) -> ConnectionStatus,
-
-	--[[
-		Runs the `SignalConnection`'s handler function directly.
-
-		<i>Inherited from:</i> [<b>SignalConnection</b>](#)
-
-		<b>Example:</b>
-
-		```luau
-		local conn = SignalConnection.new(function(...)
-			print("Handler executed", ...)
-		end)
-
-		conn:runHandler(100) --> "Handler executed" 100
-		```
-	]]
-	runHandler: (self: any, ...any) -> (),
+	getState: (self: any) -> ConnectionState,
 
 	--[[
 		Disconnects the `SignalConnection` and calls `destroy()` on itself.
@@ -213,12 +203,15 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 
 		```luau
 		local conn = SignalConnection.new(f)
-		print(conn:getStatus()) --> "listening"
+		print(conn:getState()) --> "listening"
 		conn:disconnect()
-		print(conn:getStatus()) --> "dead"
+		print(conn:getState()) --> "dead"
 		```
 	]]
 	disconnect: (self: any) -> (),
+
+	isAsync: (self: any) -> boolean,
+	runHandlerWithSettings: (self: any, payload: any, dispatchSettings: DispatchSettings) -> (),
 }
 
 --[[
@@ -360,9 +353,10 @@ function SignalConnection.newWithInitialization(withInitialization, handler, con
 	]]
 	self._settings = {
 		priority = 0,
+		async = false,
 	}
 
-	self:setStatus("listening")
+	self:setState("listening")
 	self._handler = handler
 
 	if connectionSettings ~= nil then
@@ -405,36 +399,44 @@ function SignalConnection.getPriority(self: InstanceInternal)
 end
 
 function SignalConnection.disconnect(self: InstanceInternal)
-	self:setStatus("dead")
+	self:setState("dead")
 	self:destroy()
 end
 
-function SignalConnection.setStatus(self: InstanceInternal, status)
+function SignalConnection.setState(self: InstanceInternal, status)
 	self._status = status
 end
 
-function SignalConnection.getStatus(self: InstanceInternal)
+function SignalConnection.getState(self: InstanceInternal)
 	return self._status
 end
 
 function SignalConnection.isListening(self: InstanceInternal)
-	return self:getStatus() == "listening"
+	return self:getState() == "listening"
 end
 
 function SignalConnection.isPaused(self: InstanceInternal)
-	return self:getStatus() == "paused"
+	return self:getState() == "paused"
 end
 
 function SignalConnection.isDead(self: InstanceInternal)
-	return self:getStatus() == "dead"
+	return self:getState() == "dead"
 end
 
 function SignalConnection.isAlive(self: InstanceInternal)
 	return not self:isDead()
 end
 
-function SignalConnection.runHandler(self: InstanceInternal, ...: any)
-	self._handler(...)
+function SignalConnection.isAsync(self: InstanceInternal)
+	return self._settings.async
+end
+
+function SignalConnection.runHandlerWithSettings(self: InstanceInternal, payload, dispatchSettings)
+	if dispatchSettings.withAsync or self:isAsync() then
+		task.defer(self._handler, payload)
+	else
+		self._handler(payload)
+	end
 end
 
 --[[
