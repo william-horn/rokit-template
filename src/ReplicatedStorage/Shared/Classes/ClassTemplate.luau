@@ -296,7 +296,8 @@ local function __init__(class: AnyClassInternal, instance, withInitialization: b
 	class:_incrementActiveInstanceCount()
 	class:_incrementLifetimeInstanceCount()
 
-	class._activeInstances[instance] = true
+	--! problem
+	class._activeInstances[instance] = instance
 	class._memorizedInstances[#class._memorizedInstances + 1] = instance
 
 	instance._class = class

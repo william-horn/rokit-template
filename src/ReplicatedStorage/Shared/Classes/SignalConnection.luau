@@ -16,6 +16,7 @@ local mergeTables = require(ReplicatedStorage.Shared.Util.Table.mergeTables)
 export type ConnectionSettings<T = never> = {
 	priority: number | T,
 	async: boolean | T,
+	name: string | T,
 }
 
 export type DispatchSettings<T = never> = {
@@ -354,6 +355,7 @@ function SignalConnection.newWithInitialization(withInitialization, handler, con
 	self._settings = {
 		priority = 0,
 		async = false,
+		name = "Unnamed",
 	}
 
 	self:setState("listening")
@@ -399,6 +401,7 @@ function SignalConnection.getPriority(self: InstanceInternal)
 end
 
 function SignalConnection.disconnect(self: InstanceInternal)
+	--! problem
 	self:setState("dead")
 	self:destroy()
 end
@@ -431,8 +434,12 @@ function SignalConnection.isAsync(self: InstanceInternal)
 	return self._settings.async
 end
 
-function SignalConnection.runHandlerWithSettings(self: InstanceInternal, payload, dispatchSettings)
-	if dispatchSettings.withAsync or self:isAsync() then
+function SignalConnection.runHandlerWithSettings(self: InstanceInternal, payload, finalDispatchSettings)
+	if self:isDead() then
+		return
+	end
+
+	if finalDispatchSettings.withAsync or self:isAsync() then
 		task.defer(self._handler, payload)
 	else
 		self._handler(payload)

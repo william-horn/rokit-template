@@ -14,6 +14,7 @@ local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
 local Table = require(ReplicatedStorage.Shared.Types.Table)
 local mergeTables = require(ReplicatedStorage.Shared.Util.Table.mergeTables)
+local removeElement = require(ReplicatedStorage.Shared.Util.Table.removeElement)
 
 export type EventState = "listening" | "dispatch_limit_reached" | "cooldown" | "throttling" | "dead" | "paused"
 
@@ -100,12 +101,13 @@ export type LocalInstanceFieldsPublic<CP, IP, SCP> = {}
 ]]
 export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	_parent: II?,
-	_propagating: boolean,
+	_isPropagating: boolean,
 	_connections: typeof(setmetatable({} :: Table.ArrayOf<SignalConnection.InstancePublic>, { __mode = "v" })),
 	_eventSettings: EventSettings,
 	_eventAnalytics: EventAnalytics,
 	_dispatchValidationReport: ValidationReport.InstancePublic,
 	_state: EventState,
+	_children: typeof(setmetatable({} :: Table.ArrayOf<II>, { __mode = "v" })),
 }
 
 --[[
@@ -210,6 +212,12 @@ export type LocalInstanceMethodsPublic<CP, IP, SCP> = {
 	getState: (self: any) -> EventState,
 	setState: (self: any, state: EventState) -> (),
 	isPropagating: (self: any) -> boolean,
+	addChild: (self: any, childEvent: IP) -> (),
+	removeChild: (self: any, childEvent: IP) -> (),
+	getChildren: (self: any) -> Table.ArrayOf<IP>,
+	stopPropagating: (self: any) -> (),
+	destroy: (self: any) -> IP,
+	disconnect: (self: any) -> (),
 }
 
 --[[
@@ -328,8 +336,7 @@ function EventSignal.newWithInitialization(withInitialization, parent, eventSett
 		PRIVATE Fields - Instance
 	]]
 	self._connections = setmetatable({}, { __mode = "v" })
-	self._propagating = false
-	self:setState("listening")
+	self._children = setmetatable({}, { __mode = "v" })
 
 	self._eventSettings = {
 		dispatchLimit = -1,
@@ -368,6 +375,12 @@ function EventSignal.newWithInitialization(withInitialization, parent, eventSett
 
 	self._parent = parent :: InstanceInternal?
 	self._dispatchValidationReport = ValidationReport.new()
+	self._isPropagating = false
+	self:setState("listening")
+
+	if self._parent ~= nil then
+		self._parent:addChild(self)
+	end
 
 	--[[
 		PUBLIC Fields - Instance
@@ -409,7 +422,7 @@ end
 --[[
 	PRIVATE Methods - Instance
 ]]
-function EventSignal._dispatchWithSettings(self: InstanceInternal, payload, dispatchSettings)
+function EventSignal._dispatchWithSettings(self: InstanceInternal, payload, finalDispatchSettings)
 	self._eventAnalytics.dispatches.total += 1
 
 	local connections = self._connections
@@ -420,7 +433,7 @@ function EventSignal._dispatchWithSettings(self: InstanceInternal, payload, disp
 	]]
 	dispatchValidationReport:clear()
 
-	if dispatchSettings.withValidation then
+	if finalDispatchSettings.withValidation then
 		EventSignal._dispatchValidationHandler(dispatchValidationReport, self)
 		dispatchValidationReport:runResultHandlers()
 
@@ -435,11 +448,19 @@ function EventSignal._dispatchWithSettings(self: InstanceInternal, payload, disp
 		of validation by this point. The event is authorized to 
 		fire connections.
 	]]
+	self._isPropagating = true
+
 	for index = #connections, 1, -1 do
 		local connection = connections[index]
-		connection:runHandlerWithSettings(payload, dispatchSettings)
+		connection:runHandlerWithSettings(payload, finalDispatchSettings)
+
+		-- only for synchronous connections
+		if not self:isPropagating() then
+			break
+		end
 	end
 
+	self:stopPropagating()
 	self._eventAnalytics.dispatches.successful += 1
 	return dispatchValidationReport
 end
@@ -508,8 +529,67 @@ function EventSignal.getState(self: InstanceInternal)
 	return self._state
 end
 
-function EventSignal.setState(self: InstanceInternal, state: EventState)
+function EventSignal.setState(self: InstanceInternal, state)
 	self._state = state
+end
+
+function EventSignal.isPropagating(self: InstanceInternal)
+	return self._isPropagating
+end
+
+function EventSignal.addChild(self: InstanceInternal, childEvent)
+	self._children[#self._children + 1] = childEvent :: any
+end
+
+function EventSignal.removeChild(self: InstanceInternal, childEvent)
+	removeElement(self._children :: any, childEvent)
+end
+
+function EventSignal.stopPropagating(self: InstanceInternal)
+	self._isPropagating = false
+end
+
+--[[
+	To return a unique type from an overloaded method, let the
+	method cast it's return type to 'any', and then return
+	whatever value is desired. This is because the default return
+	type of an overloaded method will be a conjunction between
+	the original method and the new one, which may not even be
+	compatible. However, it will be compatible with type 'any',
+	and then furthermore the new return type.
+
+	old & new -> any -> new
+]]
+function EventSignal.destroy(self: InstanceInternal)
+	self._super.destroy(self)
+	--! problem
+
+	-- internal cleanup
+	-- self._dispatchValidationReport:destroy()
+	-- self:disconnect()
+
+	return self
+end
+
+--[[
+	note:
+
+	After disconnecting a connection, the `SignalConnection` will
+	remain in the connections array until all references to the signal
+	are gone, and the garbage collector has made a pass.
+
+	We could remove the connection manually here, but it's best practice
+	under this architecture to always check if an object is dead or destroyed
+	before operating on it.
+]]
+function EventSignal.disconnect(self: InstanceInternal)
+	local connections = self._connections
+
+	for index = 1, #connections do
+		local connection = connections[index]
+		connection:disconnect()
+		connections[index] = nil
+	end
 end
 
 --[[
@@ -519,19 +599,29 @@ end
 	test-code, ideally for testing class features.
 ]]
 function EventSignal.test()
-	local e = EventSignal.new({
-		dispatchLimit = 1,
-	})
+	local e = EventSignal.new()
 
 	e:connect(function(payload)
+		-- e:stopPropagating()
 		print("Event dispatched with: ", payload)
-	end)
+	end, { name = "conn 1" })
 
-	e:dispatch("idk")
-	e:dispatch("idk")
-	e:dispatch("idk")
+	local c = e:connect(function(payload)
+		print("second dispatch")
+	end, { name = "conn 2" })
+
+	e:connect(function(payload)
+		print("third connection")
+	end, { name = "conn 3" })
+
+	e:dispatch()
+	c:disconnect()
+	c = nil
 
 	print(e)
+	task.wait(10)
+	print(e)
+	e:dispatch()
 end
 
 -- Export the final class with a public interface
