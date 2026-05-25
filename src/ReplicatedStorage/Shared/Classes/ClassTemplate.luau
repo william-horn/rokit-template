@@ -175,7 +175,7 @@ export type ClassTemplatePrivate<IP, SCP> = {
 		memory leaks, or flagging situations where an  instance should have 
 		been destroyed but wasn't.
 	]]
-	_activeInstances: Table.Map<IP, true>,
+	-- _activeInstances: Table.Map<IP, IP>,
 
 	--[[
 		A weak table (array) which stores all instances that have been created 
@@ -185,7 +185,7 @@ export type ClassTemplatePrivate<IP, SCP> = {
 		Unlike `_activeInstances`, this is a weak array which will automatically
 		drop the object once it becomes eligible for garbage collection.
 	]]
-	_memorizedInstances: typeof(setmetatable({} :: Table.ArrayOf<IP>, { __mode = "v" })),
+	_memorizedInstances: typeof(setmetatable({} :: Table.Map<IP, IP>, { __mode = "k" })),
 
 	--[[
 		Increments the active instance count in a class. This usually
@@ -296,13 +296,12 @@ local function __init__(class: AnyClassInternal, instance, withInitialization: b
 	class:_incrementActiveInstanceCount()
 	class:_incrementLifetimeInstanceCount()
 
-	--! problem
-	class._activeInstances[instance] = instance
-	class._memorizedInstances[#class._memorizedInstances + 1] = instance
-
 	instance._class = class
 	instance._className = class:getClassName()
 	instance._super = class._super
+
+	-- class._activeInstances[instance] = instance
+	class._memorizedInstances[instance] = instance
 end
 
 local function newClass<IP, _, SCP>(_: IP, className: string, superClass: SCP)
@@ -317,8 +316,8 @@ local function newClass<IP, _, SCP>(_: IP, className: string, superClass: SCP)
 	class._className = className
 	class._activeInstanceCount = 0
 	class._lifetimeInstanceCount = 0
-	class._activeInstances = {}
-	class._memorizedInstances = setmetatable({}, { __mode = "v" })
+	-- class._activeInstances = {}
+	class._memorizedInstances = setmetatable({}, { __mode = "k" })
 
 	-- public methods
 	class.getActiveInstanceCount = getActiveInstanceCount
@@ -333,7 +332,7 @@ local function newClass<IP, _, SCP>(_: IP, className: string, superClass: SCP)
 	class._incrementLifetimeInstanceCount = _incrementLifetimeInstanceCount
 
 	-- default constructor
-	class.__init__ = __init__
+	class.__init__ = __init__ :: any
 
 	return class
 end

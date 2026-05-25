@@ -102,12 +102,12 @@ export type LocalInstanceFieldsPublic<CP, IP, SCP> = {}
 export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	_parent: II?,
 	_isPropagating: boolean,
-	_connections: typeof(setmetatable({} :: Table.ArrayOf<SignalConnection.InstancePublic>, { __mode = "v" })),
+	_connections: Table.ArrayOf<SignalConnection.InstancePublic>,
 	_eventSettings: EventSettings,
 	_eventAnalytics: EventAnalytics,
 	_dispatchValidationReport: ValidationReport.InstancePublic,
 	_state: EventState,
-	_children: typeof(setmetatable({} :: Table.ArrayOf<II>, { __mode = "v" })),
+	_children: Table.ArrayOf<II>,
 }
 
 --[[
@@ -335,8 +335,8 @@ function EventSignal.newWithInitialization(withInitialization, parent, eventSett
 	--[[
 		PRIVATE Fields - Instance
 	]]
-	self._connections = setmetatable({}, { __mode = "v" })
-	self._children = setmetatable({}, { __mode = "v" })
+	self._connections = {}
+	self._children = {}
 
 	self._eventSettings = {
 		dispatchLimit = -1,
@@ -588,7 +588,6 @@ function EventSignal.disconnect(self: InstanceInternal)
 	for index = 1, #connections do
 		local connection = connections[index]
 		connection:disconnect()
-		connections[index] = nil
 	end
 end
 
@@ -613,15 +612,6 @@ function EventSignal.test()
 	e:connect(function(payload)
 		print("third connection")
 	end, { name = "conn 3" })
-
-	e:dispatch()
-	c:disconnect()
-	c = nil
-
-	print(e)
-	task.wait(10)
-	print(e)
-	e:dispatch()
 end
 
 -- Export the final class with a public interface

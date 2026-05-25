@@ -372,7 +372,7 @@ function Object.destroy(self: InstanceInternal)
 	while _class ~= nil do
 		local class = _class :: newClass.AnyClassInternal
 		class:_decrementActiveInstanceCount()
-		class._activeInstances[self] = nil
+		-- class._activeInstances[self] = nil
 		_class = class:getSuperClass()
 	end
 
