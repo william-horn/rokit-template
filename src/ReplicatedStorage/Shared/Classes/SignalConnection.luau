@@ -8,7 +8,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Super = require(ReplicatedStorage.Shared.Classes.Object)
 local newClass = require(ReplicatedStorage.Shared.Classes.ClassTemplate)
+local Table = require(ReplicatedStorage.Shared.Types.Table)
 local mergeTables = require(ReplicatedStorage.Shared.Util.Table.mergeTables)
+local removeElement = require(ReplicatedStorage.Shared.Util.Table.removeElement)
 
 --[[
 	Class-specific type definitions
@@ -39,6 +41,7 @@ export type LocalInstanceFieldsPrivate<CI, II, SCI> = {
 	_settings: ConnectionSettings,
 	_status: ConnectionState,
 	_handler: (...any) -> (),
+	_connections: Table.ArrayOf<II>,
 }
 
 --[[
@@ -275,7 +278,11 @@ export type ClassMethodsPublic = {
 
 		@return `SignalConnection` <<b>SignalConnection Instance</b>>
 	]]
-	new: (handler: (...any) -> (), connectionSettings: ConnectionSettings<nil>?) -> InstancePublic,
+	new: (
+		handler: (...any) -> (),
+		connectionSettings: ConnectionSettings<nil>?,
+		connections: Table.ArrayOf<InstancePublic>
+	) -> InstancePublic,
 
 	--[[
 		Create a new instance of this class with the option of 
@@ -288,7 +295,8 @@ export type ClassMethodsPublic = {
 	newWithInitialization: (
 		withInitialization: boolean,
 		handler: (...any) -> (),
-		connectionSettings: ConnectionSettings<nil>?
+		connectionSettings: ConnectionSettings<nil>?,
+		connections: Table.ArrayOf<InstancePublic>
 	) -> InstancePublic,
 
 	--[[
@@ -345,7 +353,7 @@ local SignalConnection = newClass({} :: InstancePublic, "SignalConnection", Supe
 
 	Class constructors - responsible for creating class instances
 ]]
-function SignalConnection.newWithInitialization(withInitialization, handler, connectionSettings)
+function SignalConnection.newWithInitialization(withInitialization, handler, connectionSettings, connections)
 	local self = setmetatable((Super.new() :: any) :: InstanceInternal, SignalConnection)
 	SignalConnection:__init__(self, withInitialization)
 
@@ -360,6 +368,7 @@ function SignalConnection.newWithInitialization(withInitialization, handler, con
 
 	self:setState("listening")
 	self._handler = handler
+	self._connections = connections :: any
 
 	if connectionSettings ~= nil then
 		mergeTables(self._settings, connectionSettings)
@@ -390,7 +399,7 @@ end
 ]]
 
 --[[
-	PUBLIC Methods - Instance
+	PUBLIC Methods - Instance  
 ]]
 function SignalConnection.getSettings(self: InstanceInternal)
 	return self._settings
@@ -401,9 +410,16 @@ function SignalConnection.getPriority(self: InstanceInternal)
 end
 
 function SignalConnection.disconnect(self: InstanceInternal)
-	--! problem
 	self:setState("dead")
 	self:destroy()
+
+	for index = 1, #self._connections do
+		local connection = self._connections[index]
+		if connection == self then
+			removeElement(self._connections, connection)
+			break
+		end
+	end
 end
 
 function SignalConnection.setState(self: InstanceInternal, status)

@@ -483,7 +483,7 @@ end
 	PUBLIC Methods - Instance
 ]]
 function EventSignal.connect(self: InstanceInternal, handler, connectionSettings)
-	local signalConnection = SignalConnection.new(handler, connectionSettings)
+	local signalConnection = SignalConnection.new(handler, connectionSettings, self._connections)
 	local connectionCount = #self._connections
 
 	-- special case placement for connection signals
@@ -562,11 +562,10 @@ end
 ]]
 function EventSignal.destroy(self: InstanceInternal)
 	self._super.destroy(self)
-	--! problem
 
 	-- internal cleanup
-	-- self._dispatchValidationReport:destroy()
-	-- self:disconnect()
+	self._dispatchValidationReport:destroy()
+	self:disconnect()
 
 	return self
 end
@@ -612,6 +611,12 @@ function EventSignal.test()
 	e:connect(function(payload)
 		print("third connection")
 	end, { name = "conn 3" })
+
+	c:disconnect()
+
+	e:dispatch(123)
+
+	print(e)
 end
 
 -- Export the final class with a public interface
